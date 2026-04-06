@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel de Administrador | Quiniela 2026</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Panel Administrador</h1>
+      <p class="subtitle">Gestión Maestra de la Quiniela 2026</p>
+    </header>
+
+    <main>
+      <!-- LOGIN SECTION -->
+      <section id="login-section" class="login-wrapper">
+        <div class="card login-card">
+          <div
+            class="group-header"
+            style="justify-content: center; border: none"
+          >
+            🔐 Acceso Restringido
+          </div>
+          <div class="input-group">
+            <label for="admin-pass">Contraseña Maestra</label>
+            <input
+              type="password"
+              id="admin-pass"
+              placeholder="••••••••"
+              style="text-align: center"
+            />
+          </div>
+          <button id="btn-login" class="btn-primary" style="width: 100%">
+            Entrar al Sistema
+          </button>
+        </div>
+      </section>
+
+      <!-- DASHBOARD CONTENT -->
+      <section id="admin-content" style="display: none">
+        <div class="dashboard-header">
+          <div>
+            <h2 style="color: var(--secondary-color); font-size: 1.8rem">
+              Bienvenido, Administrador
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem">
+              Resumen general de la plataforma
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button id="btn-reset-results" class="admin-action-btn btn-danger">
+              Borrar Resultados
+            </button>
+            <button
+              id="btn-reset-all"
+              class="admin-action-btn btn-danger"
+              style="background: rgba(201, 226, 79, 0.5)"
+            >
+              Borrar Todo
+            </button>
+            <button
+              onclick="location.reload()"
+              class="admin-action-btn btn-view"
+              style="margin-left: 20px"
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
+
+        <!-- STATS SUMMARY -->
+        <div class="stat-cards">
+          <div class="stat-card">
+            <div class="stat-label">Participantes</div>
+            <div id="stat-users" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Resultados Cargados</div>
+            <div id="stat-matches" class="stat-value">0 / 72</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Líder Actual</div>
+            <div id="stat-leader" class="stat-value">-</div>
+          </div>
+        </div>
+
+        <!-- Admin Nav Tabs -->
+        <div class="matchday-tabs">
+          <button class="tab-btn active" data-tab="tab-results">
+            🏆 Cargar Resultados
+          </button>
+          <button class="tab-btn" data-tab="tab-ranking">
+            📈 Tabla de Posiciones
+          </button>
+          <button class="tab-btn" data-tab="tab-entries">
+            👥 Participantes
+          </button>
+        </div>
+
+        <!-- Tab: Cargar Resultados -->
+        <div id="tab-results" class="tab-content active">
+          <div class="card">
+            <div class="group-header">⚽ Ingresar Marcadores Oficiales</div>
+            <div
+              class="matchday-tabs"
+              style="
+                justify-content: flex-start;
+                margin-bottom: 2rem;
+                background: none;
+                border: none;
+                padding: 0;
+              "
+            >
+              <button class="tab-btn-mini active" data-j-tab="j1-admin">
+                Jornada 1
+              </button>
+              <button class="tab-btn-mini" data-j-tab="j2-admin">
+                Jornada 2
+              </button>
+              <button class="tab-btn-mini" data-j-tab="j3-admin">
+                Jornada 3
+              </button>
+            </div>
+
+            <div id="j1-admin" class="j-tab-content active">
+              <table class="matches-table">
+                <tbody id="admin-container-j1"></tbody>
+              </table>
+            </div>
+            <div id="j2-admin" class="j-tab-content">
+              <table class="matches-table">
+                <tbody id="admin-container-j2"></tbody>
+              </table>
+            </div>
+            <div id="j3-admin" class="j-tab-content">
+              <table class="matches-table">
+                <tbody id="admin-container-j3"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Tabla de Posiciones -->
+        <div id="tab-ranking" class="tab-content">
+          <div class="card">
+            <div class="group-header">🥇 Ranking Global</div>
+            <table class="admin-table" style="width: 100%">
+              <thead>
+                <tr>
+                  <th style="color: var(--secondary-color)">POS</th>
+                  <th style="color: var(--secondary-color)">PARTICIPANTE</th>
+                  <th style="color: var(--secondary-color); text-align: right">
+                    PTS
+                  </th>
+                  <th style="color: var(--secondary-color); text-align: right">
+                    3 PTS
+                  </th>
+                  <th style="color: var(--secondary-color); text-align: right">
+                    1 PT
+                  </th>
+                  <th style="color: var(--secondary-color); text-align: right">
+                    0
+                  </th>
+                  <th style="color: var(--secondary-color); text-align: right">
+                    EVAL
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="ranking-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Participantes -->
+        <div id="tab-entries" class="tab-content">
+          <div class="card">
+            <div class="group-header">📋 Gestión de Jugadores</div>
+            <table class="admin-table" style="width: 100%">
+              <thead>
+                <tr>
+                  <th style="color: var(--secondary-color)">NOMBRE</th>
+                  <th style="color: var(--secondary-color)">TELÉFONO</th>
+                  <th style="color: var(--secondary-color)">PUNTOS</th>
+                  <th style="color: var(--secondary-color); text-align: right">
+                    ACCIONES
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="entries-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- MODAL FOR USER PREDICTIONS -->
+    <div id="prediction-modal" class="modal-overlay">
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2
+          id="modal-user-name"
+          style="color: var(--secondary-color); margin-bottom: 0.5rem"
+        >
+          Detalle de Predicciones
+        </h2>
+        <p
+          id="modal-user-phone"
+          style="color: var(--text-muted); margin-bottom: 2rem"
+        ></p>
+        <div
+          class="matchday-tabs"
+          style="
+            justify-content: flex-start;
+            margin-bottom: 1.2rem;
+            background: none;
+            border: none;
+            padding: 0;
+          "
+        >
+          <button class="modal-tab-btn-mini active" data-modal-j-tab="modal-j1">
+            Jornada 1
+          </button>
+          <button class="modal-tab-btn-mini" data-modal-j-tab="modal-j2">
+            Jornada 2
+          </button>
+          <button class="modal-tab-btn-mini" data-modal-j-tab="modal-j3">
+            Jornada 3
+          </button>
+        </div>
+
+        <div id="modal-j1" class="modal-j-tab-content active"></div>
+        <div id="modal-j2" class="modal-j-tab-content"></div>
+        <div id="modal-j3" class="modal-j-tab-content"></div>
+      </div>
+    </div>
+
+    <script>
+      let adminPass = "";
+      let allEntries = [];
+      let allOfficialResults = {};
+      const API_BASE_URL = window.API_BASE_URL || "";
+      const apiFetch = (path, options) =>
+        fetch(`${API_BASE_URL}${path}`, options);
+
+      const flags = {
+        MÉXICO: "mx",
+        SUDÁFRICA: "za",
+        "COREA DEL SUR": "kr",
+        "REPÚBLICA CHECA": "cz",
+        CANADÁ: "ca",
+        "BOSNIA HERZEGOVINA": "ba",
+        "E.E.U.U.": "us",
+        PARAGUAY: "py",
+        CATAR: "qa",
+        SUIZA: "ch",
+        BRASIL: "br",
+        MARRUECOS: "ma",
+        HAITÍ: "ht",
+        ESCOCIA: "gb-sct",
+        AUSTRALIA: "au",
+        TURQUÍA: "tr",
+        ALEMANIA: "de",
+        CURAZAO: "cw",
+        "PAÍSES BAJOS": "nl",
+        JAPÓN: "jp",
+        "COSTA DE MARFIL": "ci",
+        ECUADOR: "ec",
+        SUECIA: "se",
+        TÚNEZ: "tn",
+        ESPAÑA: "es",
+        "CABO VERDE": "cv",
+        BÉLGICA: "be",
+        EGIPTO: "eg",
+        "ARABIA SAUDÍ": "sa",
+        URUGUAY: "uy",
+        IRÁN: "ir",
+        "NUEVA ZELANDA": "nz",
+        FRANCIA: "fr",
+        SENEGAL: "sn",
+        IRAK: "iq",
+        NORUEGA: "no",
+        ARGENTINA: "ar",
+        ARGELIA: "dz",
+        AUSTRIA: "at",
+        JORDANIA: "jo",
+        PORTUGAL: "pt",
+        "RD CONGO": "cd",
+        INGLATERRA: "gb-eng",
+        CROACIA: "hr",
+        GHANA: "gh",
+        PANAMÁ: "pa",
+        UZBEKISTÁN: "uz",
+        COLOMBIA: "co",
+      };
+
+      const schedule = {
+        j1: [
+          ["11/06 3:00pm", "MÉXICO", "SUDÁFRICA"],
+          ["11/06 10:00pm", "COREA DEL SUR", "REPÚBLICA CHECA"],
+          ["12/06 3:00pm", "CANADÁ", "BOSNIA HERZEGOVINA"],
+          ["12/06 9:00pm", "E.E.U.U.", "PARAGUAY"],
+          ["13/06 3:00pm", "CATAR", "SUIZA"],
+          ["13/06 6:00pm", "BRASIL", "MARRUECOS"],
+          ["13/06 9:00pm", "HAITÍ", "ESCOCIA"],
+          ["14/06 12:00am", "AUSTRALIA", "TURQUÍA"],
+          ["14/06 1:00pm", "ALEMANIA", "CURAZAO"],
+          ["14/06 4:00pm", "PAÍSES BAJOS", "JAPÓN"],
+          ["14/06 7:00pm", "COSTA DE MARFIL", "ECUADOR"],
+          ["14/06 10:00pm", "SUECIA", "TÚNEZ"],
+          ["15/06 12:00pm", "ESPAÑA", "CABO VERDE"],
+          ["15/06 3:00pm", "BÉLGICA", "EGIPTO"],
+          ["15/06 6:00pm", "ARABIA SAUDÍ", "URUGUAY"],
+          ["15/06 9:00pm", "IRÁN", "NUEVA ZELANDA"],
+          ["16/06 3:00pm", "FRANCIA", "SENEGAL"],
+          ["16/06 6:00pm", "IRAK", "NORUEGA"],
+          ["16/06 9:00pm", "ARGENTINA", "ARGELIA"],
+          ["17/06 12:00am", "AUSTRIA", "JORDANIA"],
+          ["17/06 1:00pm", "PORTUGAL", "RD CONGO"],
+          ["17/06 4:00pm", "INGLATERRA", "CROACIA"],
+          ["17/06 7:00pm", "GHANA", "PANAMÁ"],
+          ["17/06 10:00pm", "UZBEKISTÁN", "COLOMBIA"],
+        ],
+        j2: [
+          ["18/06 12:00pm", "REPÚBLICA CHECA", "SUDÁFRICA"],
+          ["18/06 3:00pm", "SUIZA", "BOSNIA HERZEGOVINA"],
+          ["18/06 6:00pm", "CANADÁ", "CATAR"],
+          ["18/06 9:00pm", "MÉXICO", "COREA DEL SUR"],
+          ["19/06 3:00pm", "E.E.U.U.", "AUSTRALIA"],
+          ["19/06 6:00pm", "ESCOCIA", "MARRUECOS"],
+          ["19/06 8:30pm", "BRASIL", "HAITÍ"],
+          ["19/06 11:00pm", "TURQUÍA", "PARAGUAY"],
+          ["20/06 1:00pm", "PAÍSES BAJOS", "SUECIA"],
+          ["20/06 4:00pm", "ALEMANIA", "COSTA DE MARFIL"],
+          ["20/06 8:00pm", "ECUADOR", "CURAZAO"],
+          ["21/06 12:00am", "TÚNEZ", "JAPÓN"],
+          ["21/06 12:00pm", "ESPAÑA", "ARABIA SAUDÍ"],
+          ["21/06 3:00pm", "BÉLGICA", "IRÁN"],
+          ["21/06 6:00pm", "URUGUAY", "CABO VERDE"],
+          ["21/06 9:00pm", "NUEVA ZELANDA", "EGIPTO"],
+          ["22/06 1:00pm", "ARGENTINA", "AUSTRIA"],
+          ["22/06 5:00pm", "FRANCIA", "IRAK"],
+          ["22/06 8:00pm", "NORUEGA", "SENEGAL"],
+          ["22/06 11:00pm", "JORDANIA", "ARGELIA"],
+          ["23/06 1:00pm", "PORTUGAL", "UZBEKISTÁN"],
+          ["23/06 4:00pm", "INGLATERRA", "GHANA"],
+          ["23/06 7:00pm", "PANAMÁ", "CROACIA"],
+          ["23/06 10:00pm", "COLOMBIA", "RD CONGO"],
+        ],
+        j3: [
+          ["24/06 3:00pm", "BOSNIA HERZEGOVINA", "CATAR"],
+          ["24/06 3:00pm", "SUIZA", "CANADÁ"],
+          ["24/06 6:00pm", "ESCOCIA", "BRASIL"],
+          ["24/06 6:00pm", "MARRUECOS", "HAITÍ"],
+          ["24/06 9:00pm", "REPÚBLICA CHECA", "MÉXICO"],
+          ["24/06 9:00pm", "SUDÁFRICA", "COREA DEL SUR"],
+          ["25/06 4:00pm", "CURAZAO", "COSTA DE MARFIL"],
+          ["25/06 4:00pm", "ECUADOR", "ALEMANIA"],
+          ["25/06 7:00pm", "JAPÓN", "SUECIA"],
+          ["25/06 7:00pm", "TÚNEZ", "PAÍSES BAJOS"],
+          ["25/06 10:00pm", "PARAGUAY", "AUSTRALIA"],
+          ["25/06 10:00pm", "TURQUÍA", "E.E.U.U."],
+          ["26/06 3:00pm", "NORUEGA", "FRANCIA"],
+          ["26/06 3:00pm", "SENEGAL", "IRAK"],
+          ["26/06 8:00pm", "CABO VERDE", "ARABIA SAUDÍ"],
+          ["26/06 8:00pm", "URUGUAY", "ESPAÑA"],
+          ["26/06 11:00pm", "EGIPTO", "IRÁN"],
+          ["26/06 11:00pm", "NUEVA ZELANDA", "BÉLGICA"],
+          ["27/06 5:00pm", "CROACIA", "GHANA"],
+          ["27/06 5:00pm", "PANAMÁ", "INGLATERRA"],
+          ["27/06 7:30pm", "COLOMBIA", "PORTUGAL"],
+          ["27/06 7:30pm", "RD CONGO", "UZBEKISTÁN"],
+          ["27/06 10:00pm", "ARGELIA", "AUSTRIA"],
+          ["27/06 10:00pm", "JORDANIA", "ARGENTINA"],
+        ],
+      };
+
+      const matchInfoById = (() => {
+        const map = {};
+        Object.keys(schedule).forEach((jKey) => {
+          schedule[jKey].forEach((match, index) => {
+            const [time, t1, t2] = match;
+            const matchId = `${jKey.toUpperCase()}${index + 1}`;
+            map[matchId] = { time, team1: t1, team2: t2, jKey };
+          });
+        });
+        return map;
+      })();
+
+      document
+        .getElementById("btn-login")
+        .addEventListener("click", async () => {
+          adminPass = document.getElementById("admin-pass").value;
+          loadData();
+        });
+
+      document.getElementById("admin-pass").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("btn-login").click();
+      });
+
+      async function loadData() {
+        try {
+          const res = await apiFetch("/api/admin/entries", {
+            headers: { Authorization: adminPass },
+          });
+          if (!res.ok) throw new Error("Unauthorized");
+
+          const { entries, officialResults } = await res.json();
+          allEntries = entries;
+          allOfficialResults = officialResults;
+
+          document.getElementById("login-section").style.display = "none";
+          document.getElementById("admin-content").style.display = "block";
+
+          updateStats(entries, officialResults);
+          renderResultInputs(officialResults);
+          renderEntries(entries);
+          loadLeaderboard();
+        } catch (err) {
+          alert("Contraseña incorrecta o error de conexión");
+        }
+      }
+
+      function updateStats(entries, results) {
+        document.getElementById("stat-users").textContent = entries.length;
+        const matchesCount = Object.keys(results).length;
+        document.getElementById("stat-matches").textContent =
+          `${matchesCount} / 72`;
+      }
+
+      async function loadLeaderboard() {
+        const res = await apiFetch("/api/leaderboard");
+        const data = await res.json();
+        if (data.length > 0)
+          document.getElementById("stat-leader").textContent = data[0].name;
+
+        const tbody = document.getElementById("ranking-body");
+        tbody.innerHTML = data
+          .map(
+            (u, i) => `
+                <tr class="match-row-tr">
+                    <td><span class="rank-badge rank-${i + 1 <= 3 ? i + 1 : "other"}">${i + 1}</span></td>
+                    <td><strong style="color: #fff">${u.name}</strong></td>
+                    <td style="text-align: right;"><span class="points-val">${u.points} pts</span></td>
+                    <td style="text-align: right;"><span class="points-val">${u.exact_hits ?? 0}</span></td>
+                    <td style="text-align: right;"><span class="points-val">${u.outcome_hits ?? 0}</span></td>
+                    <td style="text-align: right;"><span class="points-val">${u.misses ?? 0}</span></td>
+                    <td style="text-align: right;"><span class="points-val">${u.matches_scored ?? 0}</span></td>
+                </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function renderResultInputs(officialResults) {
+        Object.keys(schedule).forEach((jKey) => {
+          const containerId = `admin-container-${jKey}`;
+          const container = document.getElementById(containerId);
+          container.innerHTML = "";
+
+          schedule[jKey].forEach((match, index) => {
+            const [time, t1, t2] = match;
+            const mId = `${jKey.toUpperCase()}${index + 1}`;
+            const res = officialResults[mId] || { score1: "", score2: "" };
+
+            const html = `
+                        <tr class="match-row-tr">
+                            <td class="td-date">${time}</td>
+                            <td class="td-team">
+                                <img src="https://flagcdn.com/w40/${flags[t1] || "un"}.png" class="flag-icon">
+                                <span>${t1}</span>
+                            </td>
+                            <td class="td-score">
+                                <div class="score-inputs-container">
+                                    <input type="number" id="off1-${mId}" class="score-input" value="${res.score1}">
+                                    <span>-</span>
+                                    <input type="number" id="off2-${mId}" class="score-input" value="${res.score2}">
+                                    <button id="btn-save-${mId}" onclick="saveResult('${mId}')" class="admin-action-btn btn-view" style="margin-left: 10px;">Guardar</button>
+                                </div>
+                            </td>
+                            <td class="td-team right">
+                                <img src="https://flagcdn.com/w40/${flags[t2] || "un"}.png" class="flag-icon">
+                                <span>${t2}</span>
+                            </td>
+                        </tr>
+                    `;
+            container.insertAdjacentHTML("beforeend", html);
+          });
+        });
+      }
+
+      async function saveResult(mId) {
+        const s1 = document.getElementById(`off1-${mId}`).value;
+        const s2 = document.getElementById(`off2-${mId}`).value;
+        const btn = document.getElementById(`btn-save-${mId}`);
+        if (s1 === "" || s2 === "") return alert("Ingresa ambos marcadores");
+
+        btn.textContent = "...";
+        try {
+          const res = await apiFetch("/api/admin/set-result", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: adminPass,
+            },
+            body: JSON.stringify({ matchId: mId, score1: s1, score2: s2 }),
+          });
+          if (res.ok) {
+            btn.textContent = "✅";
+            btn.style.background = "#2ecc71";
+            setTimeout(() => {
+              btn.textContent = "Guardar";
+              btn.style.background = "";
+            }, 2000);
+            loadData();
+          }
+        } catch (err) {
+          btn.textContent = "❌";
+        }
+      }
+
+      function renderEntries(entries) {
+        const tbody = document.getElementById("entries-body");
+        tbody.innerHTML = entries
+          .map(
+            (e, index) => `
+                <tr class="match-row-tr">
+                    <td><strong style="color: #fff">${e.name}</strong></td>
+                    <td>${e.phone}</td>
+                    <td><span class="points-val">${e.currentPoints} pts</span></td>
+                    <td style="text-align: right;">
+                        <button onclick="viewUserPredictions(${index})" class="admin-action-btn btn-view">Ver Predicciones</button>
+                    </td>
+                </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function viewUserPredictions(index) {
+        const user = allEntries[index];
+        document.getElementById("modal-user-name").textContent = user.name;
+        document.getElementById("modal-user-phone").textContent = user.phone;
+
+        const predictions = Array.isArray(user.predictions)
+          ? user.predictions
+          : [];
+
+        const getWinner = (a, b) => (a > b ? 1 : a < b ? 2 : 0);
+        const getHit = (p) => {
+          const off = allOfficialResults?.[p.matchId];
+          if (!off)
+            return { border: "rgba(255,255,255,0.12)", label: "Sin resultado" };
+
+          const p1 = Number(p.score1);
+          const p2 = Number(p.score2);
+          const o1 = Number(off.score1);
+          const o2 = Number(off.score2);
+
+          if (p1 === o1 && p2 === o2) return { border: "#2ecc71", label: "3 pts" };
+          if (getWinner(p1, p2) === getWinner(o1, o2))
+            return { border: "#f1c40f", label: "1 pt" };
+          return { border: "#e74c3c", label: "0" };
+        };
+
+        const parseMatchNumber = (matchId) => {
+          const n = Number(String(matchId).slice(2));
+          return Number.isFinite(n) ? n : 9999;
+        };
+
+        const jornadaFromMatchId = (matchId) => {
+          const s = String(matchId || "");
+          const jNum = s.length >= 2 ? s[1] : "";
+          return jNum === "1" || jNum === "2" || jNum === "3"
+            ? `j${jNum}`
+            : null;
+        };
+
+        const renderJornada = (jKey) => {
+          const container = document.getElementById(`modal-${jKey}`);
+          const items = predictions
+            .filter((p) => jornadaFromMatchId(p.matchId) === jKey)
+            .sort(
+              (a, b) =>
+                parseMatchNumber(a.matchId) - parseMatchNumber(b.matchId),
+            );
+
+          if (items.length === 0) {
+            container.innerHTML = `<div style="color: var(--text-muted); padding: 0.5rem 0;">Sin jugadas en esta jornada.</div>`;
+            return;
+          }
+
+          container.innerHTML = items
+            .map((p) => {
+              const info = matchInfoById[p.matchId] || {
+                time: "Fecha por definir",
+                team1: p.team1,
+                team2: p.team2,
+              };
+              const t1 = info.team1 || p.team1;
+              const t2 = info.team2 || p.team2;
+              const f1 = flags[t1] || "un";
+              const f2 = flags[t2] || "un";
+              const hit = getHit(p);
+
+              return `
+                <div class="prediction-item" style="display:flex; justify-content:space-between; gap:14px; border: 1px solid rgba(255,255,255,0.10); border-left: 6px solid ${hit.border};">
+                  <div style="display:flex; flex-direction:column; gap:6px;">
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">${info.time || ""} ·</span>
+                    <span style="display:flex; align-items:center; gap:10px;">
+                      <img src="https://flagcdn.com/w40/${f1}.png" class="flag-icon" alt="${t1}">
+                      <strong style="color:#fff;">${t1}</strong>
+                      <span style="color: var(--text-muted);">vs</span>
+                      <strong style="color:#fff;">${t2}</strong>
+                      <img src="https://flagcdn.com/w40/${f2}.png" class="flag-icon" alt="${t2}">
+                    </span>
+                  </div>
+                  <span class="points-val" style="white-space:nowrap; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                    <span>${p.score1} - ${p.score2}</span>
+                    <span style="color: var(--text-muted); font-size: 0.75rem;">${hit.label}</span>
+                  </span>
+                </div>
+              `;
+            })
+            .join("");
+        };
+
+        renderJornada("j1");
+        renderJornada("j2");
+        renderJornada("j3");
+
+        // default to Jornada 1
+        document
+          .querySelectorAll(".modal-tab-btn-mini")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelectorAll(".modal-j-tab-content")
+          .forEach((c) => c.classList.remove("active"));
+        const firstBtn = document.querySelector(
+          '.modal-tab-btn-mini[data-modal-j-tab="modal-j1"]',
+        );
+        if (firstBtn) firstBtn.classList.add("active");
+        document.getElementById("modal-j1").classList.add("active");
+
+        document.getElementById("prediction-modal").style.display = "flex";
+      }
+
+      // Modal Close logic
+      document.querySelector(".close-modal").onclick = () => {
+        document.getElementById("prediction-modal").style.display = "none";
+      };
+      window.onclick = (event) => {
+        if (event.target == document.getElementById("prediction-modal")) {
+          document.getElementById("prediction-modal").style.display = "none";
+        }
+      };
+
+      // Main Admin Tabs
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".matchday-tabs .tab-btn")
+            .forEach((b) => b.classList.remove("active"));
+          document
+            .querySelectorAll("#admin-content > .tab-content")
+            .forEach((c) => c.classList.remove("active"));
+          btn.classList.add("active");
+          document.getElementById(btn.dataset.tab).classList.add("active");
+        });
+      });
+
+      // Mini J-Tabs for Result Entry
+      document.querySelectorAll(".tab-btn-mini").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tab-btn-mini")
+            .forEach((b) => b.classList.remove("active"));
+          document
+            .querySelectorAll(".j-tab-content")
+            .forEach((c) => c.classList.remove("active"));
+          btn.classList.add("active");
+          document.getElementById(btn.dataset.jTab).classList.add("active");
+        });
+      });
+
+      // Modal mini tabs (Jornadas)
+      document.querySelectorAll(".modal-tab-btn-mini").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".modal-tab-btn-mini")
+            .forEach((b) => b.classList.remove("active"));
+          document
+            .querySelectorAll(".modal-j-tab-content")
+            .forEach((c) => c.classList.remove("active"));
+          btn.classList.add("active");
+          document
+            .getElementById(btn.dataset.modalJTab)
+            .classList.add("active");
+        });
+      });
+
+      // Reset Logic
+      document
+        .getElementById("btn-reset-results")
+        .addEventListener("click", async () => {
+          if (
+            !confirm(
+              "¿Estás seguro de que deseas borrar TODOS los resultados oficiales? Esto pondrá todos los marcadores en blanco y los puntos de los participantes en cero.",
+            )
+          )
+            return;
+
+          const res = await apiFetch("/api/admin/reset-results", {
+            method: "POST",
+            headers: { Authorization: adminPass },
+          });
+          if (res.ok) {
+            alert("Resultados restablecidos");
+            loadData();
+          }
+        });
+
+      document
+        .getElementById("btn-reset-all")
+        .addEventListener("click", async () => {
+          if (
+            !confirm(
+              "!!! ADVERTENCIA CRÍTICA !!!\n\n¿Estás seguro de que deseas borrar TODO? Se eliminarán todos los participantes y todos los resultados. Esta acción NO se puede deshacer.",
+            )
+          )
+            return;
+
+          const res = await apiFetch("/api/admin/reset-all", {
+            method: "POST",
+            headers: { Authorization: adminPass },
+          });
+          if (res.ok) {
+            alert("Toda la competencia ha sido reiniciada");
+            location.reload();
+          }
+        });
+    </script>
+
+    <style>
+      .tab-btn-mini {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        color: var(--text-muted);
+        padding: 0.4rem 1.2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-right: 5px;
+        font-size: 0.8rem;
+      }
+      .tab-btn-mini.active {
+        background: var(--secondary-color);
+        color: var(--bg-dark);
+      }
+      .j-tab-content {
+        display: none;
+      }
+      .j-tab-content.active {
+        display: block;
+      }
+
+      .modal-tab-btn-mini {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        color: var(--text-muted);
+        padding: 0.4rem 1.2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-right: 5px;
+        font-size: 0.8rem;
+      }
+      .modal-tab-btn-mini.active {
+        background: var(--secondary-color);
+        color: var(--bg-dark);
+      }
+      .modal-j-tab-content {
+        display: none;
+      }
+      .modal-j-tab-content.active {
+        display: block;
+      }
+    </style>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiniela Mundial 2026 | Predicciones</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Quiniela Mundial 2026</h1>
+        <p class="subtitle">Ingresa tus predicciones para la fase de grupos</p>
+    </header>
+
+    <main>
+        <section class="card">
+            <div class="group-header">⚽ Datos del Participante</div>
+            <div class="hero-form-section">
+                <div class="input-group">
+                    <label for="full-name">Nombre Completo</label>
+                    <input type="text" id="full-name" placeholder="Ej. Juan Pérez" required>
+                </div>
+                <div class="input-group">
+                    <label for="phone">Teléfono</label>
+                    <input type="tel" id="phone" placeholder="Ej. +52 5512345678" required>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabs for Matchdays -->
+        <div class="matchday-tabs">
+            <button class="tab-btn active" data-tab="j1">Jornada 1</button>
+            <button class="tab-btn" data-tab="j2">Jornada 2</button>
+            <button class="tab-btn" data-tab="j3">Jornada 3</button>
+        </div>
+
+        <form id="quiniela-form">
+            <!-- TAB JORNADA 1 -->
+            <div id="j1" class="tab-content active">
+                <table class="matches-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Local</th>
+                            <th style="text-align:center">Resultado</th>
+                            <th>Visitante</th>
+                            <th>Estadio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groups-container-j1"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB JORNADA 2 -->
+            <div id="j2" class="tab-content">
+                <table class="matches-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Local</th>
+                            <th style="text-align:center">Resultado</th>
+                            <th>Visitante</th>
+                            <th>Estadio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groups-container-j2"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB JORNADA 3 -->
+            <div id="j3" class="tab-content">
+                <table class="matches-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Local</th>
+                            <th style="text-align:center">Resultado</th>
+                            <th>Visitante</th>
+                            <th>Estadio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groups-container-j3"></tbody>
+                </table>
+            </div>
+
+            <div class="submit-container">
+                <button type="submit" class="btn-primary">Enviar Quiniela completa</button>
+                <div id="message-box"></div>
+            </div>
+        </form>
+    </main>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

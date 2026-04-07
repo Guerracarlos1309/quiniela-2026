@@ -205,7 +205,7 @@
         </div>
       </section>
       <div id="custom-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <div class="modal-content modal-alert">
           <h2 id="modal-title" style="margin-bottom: 1rem; color: var(--secondary-color);"></h2>
           <p id="modal-message" style="margin-bottom: 2rem; color: var(--text-light);"></p>
           <div id="modal-actions" style="display: flex; gap: 10px; justify-content: center;">
@@ -466,7 +466,10 @@
         .addEventListener("click", async () => {
           const user = document.getElementById("admin-user").value;
           const pass = document.getElementById("admin-pass").value;
-          if (!user || !pass) return alert("Ingresa usuario y contraseña");
+          
+          if (!user || !pass) {
+            return showAlert("Atención", "Por favor ingresa usuario y contraseña", "info");
+          }
 
           try {
             const res = await fetch(`${API_BASE_URL}/api/admin/login`, {

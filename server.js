@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 try {
     require('dotenv').config();
 } catch (_error) {
@@ -30,9 +31,42 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
-function isAdminAuthorized(req) {
-    const password = req.headers.authorization;
-    return password === ADMIN_PASSWORD;
+// Log temporal para diagnosticar el 404 en borrado
+app.use((req, res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+    next();
+});
+
+async function isAdminAuthorized(req) {
+    const auth = req.headers.authorization;
+    if (!auth) {
+        console.log('--- Auth Failure: No Auth Header ---');
+        return false;
+    }
+
+    // Soporte para contraseña maestra (legacy)
+    if (auth === ADMIN_PASSWORD) return true;
+
+    // Soporte para "usuario:password"
+    if (auth.includes(':')) {
+        const [username, password] = auth.split(':');
+        try {
+            const result = await pool.query('SELECT password_hash FROM users WHERE username = $1', [username]);
+            if (result.rows.length === 0) {
+                console.log(`--- Auth Failure: User "${username}" not found ---`);
+                return false;
+            }
+            const match = await bcrypt.compare(password, result.rows[0].password_hash);
+            if (!match) console.log(`--- Auth Failure: Incorrect password for "${username}" ---`);
+            return match;
+        } catch (err) {
+            console.error('Auth error:', err);
+            return false;
+        }
+    }
+
+    console.log('--- Auth Failure: Invalid format (missing ":") ---');
+    return false;
 }
 
 async function ensureSchema() {
@@ -40,7 +74,7 @@ async function ensureSchema() {
         CREATE TABLE IF NOT EXISTS submissions (
             id BIGSERIAL PRIMARY KEY,
             name TEXT NOT NULL,
-            phone TEXT NOT NULL,
+            phone TEXT NOT NULL UNIQUE,
             submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
     `);
@@ -63,6 +97,16 @@ async function ensureSchema() {
             score1 INTEGER NOT NULL CHECK (score1 >= 0),
             score2 INTEGER NOT NULL CHECK (score2 >= 0),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'admin',
+            created_at TIMESTAMPTZ DEFAULT NOW()
         );
     `);
 }
@@ -108,6 +152,10 @@ async function importLegacyJsonIfNeeded() {
     }
 }
 
+app.get('/api/ping', (req, res) => {
+    res.json({ status: 'ok', version: '2.1', message: 'Servidor actualizado y detectando duplicados' });
+});
+
 // API Endpoints
 app.post('/api/predict', async (req, res) => {
     const { name, phone, predictions } = req.body;
@@ -116,12 +164,24 @@ app.post('/api/predict', async (req, res) => {
         return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
 
+    // Normalizar teléfono: eliminar todo lo que no sea dígito
+    const cleanPhone = String(phone).replace(/\D/g, '');
+    if (cleanPhone.length < 7) {
+        return res.status(400).json({ error: 'Número de teléfono inválido' });
+    }
+
     const client = await pool.connect();
     try {
+        const existing = await client.query('SELECT id FROM submissions WHERE phone = $1', [cleanPhone]);
+        if (existing.rows.length > 0) {
+            client.release();
+            return res.status(400).json({ error: 'Este número de teléfono ya ha registrado una participación' });
+        }
+
         await client.query('BEGIN');
         const submission = await client.query(
             'INSERT INTO submissions (name, phone) VALUES ($1, $2) RETURNING id;',
-            [name, phone]
+            [name, cleanPhone]
         );
         const submissionId = submission.rows[0].id;
 
@@ -143,15 +203,39 @@ app.post('/api/predict', async (req, res) => {
         res.status(201).json({ message: 'Predicción guardada con éxito', id: submissionId });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error saving prediction:', error);
+        
+        // Capturar error de duplicado (Postgres 23505 o mensaje de unique)
+        if (error.code === '23505' || (error.message && error.message.toLowerCase().includes('unique'))) {
+            return res.status(400).json({ error: 'Este número de teléfono ya ha registrado una participación' });
+        }
+        
+        console.error('--- ERROR CRÍTICO AL GUARDAR ---');
+        console.error(error);
         res.status(500).json({ error: 'Error al guardar los datos' });
     } finally {
         client.release();
     }
 });
 
+app.post('/api/admin/login', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Faltan credenciales' });
+
+    try {
+        const result = await pool.query('SELECT password_hash FROM users WHERE username = $1', [username]);
+        if (result.rows.length === 0) return res.status(401).json({ error: 'Usuario no encontrado' });
+        
+        const match = await bcrypt.compare(password, result.rows[0].password_hash);
+        if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
+
+        res.json({ token: `${username}:${password}`, username });
+    } catch (error) {
+        res.status(500).json({ error: 'Error en el servidor' });
+    }
+});
+
 app.post('/api/admin/set-result', async (req, res) => {
-    if (!isAdminAuthorized(req)) return res.status(401).json({ error: 'No autorizado' });
+    if (!(await isAdminAuthorized(req))) return res.status(401).json({ error: 'No autorizado' });
     const { matchId, score1, score2 } = req.body;
     if (!matchId || score1 === undefined || score2 === undefined) {
         return res.status(400).json({ error: 'Faltan datos obligatorios' });
@@ -249,7 +333,7 @@ app.get('/api/leaderboard', async (req, res) => {
 });
 
 app.get('/api/admin/entries', async (req, res) => {
-    if (!isAdminAuthorized(req)) return res.status(401).json({ error: 'No autorizado' });
+    if (!(await isAdminAuthorized(req))) return res.status(401).json({ error: 'No autorizado' });
 
     try {
         const entriesQuery = `
@@ -325,8 +409,31 @@ app.get('/api/admin/entries', async (req, res) => {
     }
 });
 
+app.delete('/api/admin/submissions/:id', async (req, res) => {
+    const { id } = req.params;
+    console.log(`Intentando borrar participante con ID: ${id}`);
+    
+    if (!(await isAdminAuthorized(req))) {
+        console.log(`Intento de borrado NO AUTORIZADO para ID: ${id}`);
+        return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    try {
+        const result = await pool.query('DELETE FROM submissions WHERE id = $1', [id]);
+        if (result.rowCount === 0) {
+            console.log(`No se encontró participante con ID: ${id} para borrar.`);
+            return res.status(404).json({ error: 'No se encontró el participante o ya fue borrado' });
+        }
+        console.log(`✅ Participante con ID: ${id} borrado con éxito.`);
+        res.json({ message: 'Participante eliminado con éxito' });
+    } catch (error) {
+        console.error('Error al borrar participante en BD:', error);
+        res.status(500).json({ error: 'Error al borrar el participante' });
+    }
+});
+
 app.post('/api/admin/reset-results', async (req, res) => {
-    if (!isAdminAuthorized(req)) return res.status(401).json({ error: 'No autorizado' });
+    if (!(await isAdminAuthorized(req))) return res.status(401).json({ error: 'No autorizado' });
     try {
         await pool.query('DELETE FROM official_results;');
         res.json({ message: 'Resultados oficiales restablecidos' });
@@ -336,7 +443,7 @@ app.post('/api/admin/reset-results', async (req, res) => {
 });
 
 app.post('/api/admin/reset-all', async (req, res) => {
-    if (!isAdminAuthorized(req)) return res.status(401).json({ error: 'No autorizado' });
+    if (!(await isAdminAuthorized(req))) return res.status(401).json({ error: 'No autorizado' });
     try {
         await pool.query('DELETE FROM official_results;');
         await pool.query('DELETE FROM predictions;');

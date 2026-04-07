@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS submissions (
     id BIGSERIAL PRIMARY KEY,
     name TEXT NOT NULL,
-    phone TEXT NOT NULL,
+    phone TEXT NOT NULL UNIQUE,
     submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -20,4 +20,12 @@ CREATE TABLE IF NOT EXISTS official_results (
     score1 INTEGER NOT NULL CHECK (score1 >= 0),
     score2 INTEGER NOT NULL CHECK (score2 >= 0),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'admin',
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );

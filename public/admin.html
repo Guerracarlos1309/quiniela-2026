@@ -20,10 +20,19 @@
             class="group-header"
             style="justify-content: center; border: none"
           >
-            🔐 Acceso Restringido
+            ⚽ Acceso Administrativo
           </div>
           <div class="input-group">
-            <label for="admin-pass">Contraseña Maestra</label>
+            <label for="admin-user">👤 Usuario</label>
+            <input
+              type="text"
+              id="admin-user"
+              placeholder="Nombre de usuario"
+              style="text-align: center"
+            />
+          </div>
+          <div class="input-group">
+            <label for="admin-pass">🔑 Contraseña</label>
             <input
               type="password"
               id="admin-pass"
@@ -33,6 +42,9 @@
           </div>
           <button id="btn-login" class="btn-primary" style="width: 100%">
             Entrar al Sistema
+          </button>
+          <button onclick="window.location.href='index.html'" class="admin-action-btn btn-view" style="width: 100%; margin-top: 1rem; border: none; background: rgba(255,255,255,0.05); color: var(--text-muted);">
+            ← Volver a la Quiniela
           </button>
         </div>
       </section>
@@ -60,7 +72,7 @@
               Borrar Todo
             </button>
             <button
-              onclick="location.reload()"
+              onclick="localStorage.removeItem('adminToken'); location.reload()"
               class="admin-action-btn btn-view"
               style="margin-left: 20px"
             >
@@ -192,6 +204,16 @@
           </div>
         </div>
       </section>
+      <div id="custom-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+          <h2 id="modal-title" style="margin-bottom: 1rem; color: var(--secondary-color);"></h2>
+          <p id="modal-message" style="margin-bottom: 2rem; color: var(--text-light);"></p>
+          <div id="modal-actions" style="display: flex; gap: 10px; justify-content: center;">
+            <button id="modal-ok-btn" class="admin-action-btn btn-view" style="padding: 0.8rem 2rem;">Aceptar</button>
+            <button id="modal-cancel-btn" class="admin-action-btn btn-danger" style="display: none; padding: 0.8rem 2rem;">Cancelar</button>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- MODAL FOR USER PREDICTIONS -->
@@ -236,13 +258,64 @@
     </div>
 
     <script>
-      let adminPass = "";
-      let allEntries = [];
       let allOfficialResults = {};
       const API_BASE_URL = window.API_BASE_URL || "";
       const apiFetch = (path, options) =>
         fetch(`${API_BASE_URL}${path}`, options);
 
+      // --- Custom Modal System ---
+      function showAlert(title, message, type = 'info') {
+        const modal = document.getElementById('custom-modal');
+        const mTitle = document.getElementById('modal-title');
+        const mMsg = document.getElementById('modal-message');
+        const okBtn = document.getElementById('modal-ok-btn');
+        const cancelBtn = document.getElementById('modal-cancel-btn');
+
+        mTitle.textContent = title;
+        mMsg.textContent = message;
+        mTitle.style.color = type === 'error' ? '#e74c3c' : (type === 'success' ? '#2ecc71' : 'var(--secondary-color)');
+        
+        cancelBtn.style.display = 'none';
+        modal.style.display = 'flex';
+
+        return new Promise((resolve) => {
+          okBtn.onclick = () => {
+            modal.style.display = 'none';
+            resolve(true);
+          };
+        });
+      }
+
+      function showConfirm(title, message) {
+        const modal = document.getElementById('custom-modal');
+        const mTitle = document.getElementById('modal-title');
+        const mMsg = document.getElementById('modal-message');
+        const okBtn = document.getElementById('modal-ok-btn');
+        const cancelBtn = document.getElementById('modal-cancel-btn');
+
+        mTitle.textContent = title;
+        mMsg.textContent = message;
+        mTitle.style.color = 'var(--secondary-color)';
+        
+        cancelBtn.style.display = 'block';
+        okBtn.textContent = 'Confirmar';
+        cancelBtn.textContent = 'Cancelar';
+        modal.style.display = 'flex';
+
+        return new Promise((resolve) => {
+          okBtn.onclick = () => {
+            modal.style.display = 'none';
+            resolve(true);
+          };
+          cancelBtn.onclick = () => {
+            modal.style.display = 'none';
+            resolve(false);
+          };
+        });
+      }
+
+      let adminPass = localStorage.getItem("adminToken") || "";
+      let allEntries = [];
       const flags = {
         MÉXICO: "mx",
         SUDÁFRICA: "za",
@@ -390,8 +463,29 @@
       document
         .getElementById("btn-login")
         .addEventListener("click", async () => {
-          adminPass = document.getElementById("admin-pass").value;
-          loadData();
+          const user = document.getElementById("admin-user").value;
+          const pass = document.getElementById("admin-pass").value;
+          if (!user || !pass) return alert("Ingresa usuario y contraseña");
+
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: user, password: pass }),
+            });
+
+            if (!res.ok) {
+              const err = await res.json();
+              throw new Error(err.error || "Login failed");
+            }
+
+            const data = await res.json();
+            adminPass = data.token; // Almacenamos "user:pass"
+            localStorage.setItem("adminToken", adminPass); // Persistencia
+            loadData();
+          } catch (err) {
+            alert("Error: " + err.message);
+          }
         });
 
       document.getElementById("admin-pass").addEventListener("keydown", (e) => {
@@ -417,7 +511,16 @@
           renderEntries(entries);
           loadLeaderboard();
         } catch (err) {
-          alert("Contraseña incorrecta o error de conexión");
+          console.error("Error loading data:", err);
+          if (err.message === "Unauthorized") {
+            localStorage.removeItem("adminToken");
+            adminPass = "";
+            document.getElementById("login-section").style.display = "flex";
+            document.getElementById("admin-content").style.display = "none";
+            showAlert("Sesión Expirada", "Tu sesión ya no es válida. Por favor, ingresa de nuevo.", "error");
+          } else {
+            showAlert("Error", "Error de conexión con el servidor", "error");
+          }
         }
       }
 
@@ -493,7 +596,7 @@
         const s1 = document.getElementById(`off1-${mId}`).value;
         const s2 = document.getElementById(`off2-${mId}`).value;
         const btn = document.getElementById(`btn-save-${mId}`);
-        if (s1 === "" || s2 === "") return alert("Ingresa ambos marcadores");
+        if (s1 === "" || s2 === "") return showAlert("Atención", "Ingresa ambos marcadores");
 
         btn.textContent = "...";
         try {
@@ -513,6 +616,9 @@
               btn.style.background = "";
             }, 2000);
             loadData();
+          } else {
+            const err = await res.json();
+            showAlert("Error de Acceso", err.error || "Credenciales incorrectas", "error");
           }
         } catch (err) {
           btn.textContent = "❌";
@@ -529,12 +635,44 @@
                     <td>${e.phone}</td>
                     <td><span class="points-val">${e.currentPoints} pts</span></td>
                     <td style="text-align: right;">
-                        <button onclick="viewUserPredictions(${index})" class="admin-action-btn btn-view">Ver Predicciones</button>
+                        <button onclick="viewUserPredictions(${index})" class="admin-action-btn btn-view">Ver</button>
+                        <button onclick="deleteEntry(${e.id})" class="admin-action-btn btn-danger" style="padding: 0.6rem; margin-left: 5px;">🗑️</button>
                     </td>
                 </tr>
             `,
           )
           .join("");
+      }
+
+      async function deleteEntry(id) {
+        if (!allEntries || allEntries.length === 0) return;
+        const entry = allEntries.find(e => Number(e.id) === Number(id));
+        const name = entry ? entry.name : "este participante";
+        
+        const confirmed = await showConfirm("Confirmar Borrado", `¿Estás seguro de que deseas eliminar permanentemente a "${name}" y todas sus predicciones?`);
+        if (!confirmed) return;
+        
+        try {
+          const res = await apiFetch(`/api/admin/submissions/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: adminPass }
+          });
+          
+          let data;
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            data = await res.json();
+          }
+
+          if (res.ok) {
+            showAlert("Éxito", (data && data.message ? "✅ " + data.message : "Participante eliminado"), "success");
+            loadData();
+          } else {
+            showAlert("Error", "No se pudo eliminar: " + (data && data.error ? data.error : "Error desconocido"), "error");
+          }
+        } catch (err) {
+          showAlert("Error de Red", "No se pudo conectar con el servidor", "error");
+        }
       }
 
       function viewUserPredictions(index) {
@@ -629,7 +767,6 @@
         renderJornada("j2");
         renderJornada("j3");
 
-        // default to Jornada 1
         document
           .querySelectorAll(".modal-tab-btn-mini")
           .forEach((b) => b.classList.remove("active"));
@@ -645,7 +782,6 @@
         document.getElementById("prediction-modal").style.display = "flex";
       }
 
-      // Modal Close logic
       document.querySelector(".close-modal").onclick = () => {
         document.getElementById("prediction-modal").style.display = "none";
       };
@@ -655,7 +791,6 @@
         }
       };
 
-      // Main Admin Tabs
       document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
           document
@@ -669,7 +804,6 @@
         });
       });
 
-      // Mini J-Tabs for Result Entry
       document.querySelectorAll(".tab-btn-mini").forEach((btn) => {
         btn.addEventListener("click", () => {
           document
@@ -683,7 +817,6 @@
         });
       });
 
-      // Modal mini tabs (Jornadas)
       document.querySelectorAll(".modal-tab-btn-mini").forEach((btn) => {
         btn.addEventListener("click", () => {
           document
@@ -699,46 +832,38 @@
         });
       });
 
-      // Reset Logic
-      document
-        .getElementById("btn-reset-results")
-        .addEventListener("click", async () => {
-          if (
-            !confirm(
-              "¿Estás seguro de que deseas borrar TODOS los resultados oficiales? Esto pondrá todos los marcadores en blanco y los puntos de los participantes en cero.",
-            )
-          )
-            return;
+      document.getElementById("btn-reset-results").onclick = async () => {
+        const confirmed = await showConfirm("Borrar Resultados", "¿Estás seguro de que deseas borrar TODOS los resultados oficiales?");
+        if (!confirmed) return;
 
-          const res = await apiFetch("/api/admin/reset-results", {
-            method: "POST",
-            headers: { Authorization: adminPass },
-          });
-          if (res.ok) {
-            alert("Resultados restablecidos");
-            loadData();
-          }
+        const res = await apiFetch("/api/admin/reset-results", {
+          method: "POST",
+          headers: { Authorization: adminPass },
         });
+        if (res.ok) {
+          showAlert("Reset", "Resultados restablecidos", "success");
+          loadData();
+        }
+      };
 
-      document
-        .getElementById("btn-reset-all")
-        .addEventListener("click", async () => {
-          if (
-            !confirm(
-              "!!! ADVERTENCIA CRÍTICA !!!\n\n¿Estás seguro de que deseas borrar TODO? Se eliminarán todos los participantes y todos los resultados. Esta acción NO se puede deshacer.",
-            )
-          )
-            return;
+      document.getElementById("btn-reset-all").onclick = async () => {
+        const confirmed = await showConfirm("BORRAR TODO", "⚠️ ¡ADVERTENCIA! Esto eliminará a TODOS los participantes y predicciones. ¿Proceder?");
+        if (!confirmed) return;
 
-          const res = await apiFetch("/api/admin/reset-all", {
-            method: "POST",
-            headers: { Authorization: adminPass },
-          });
-          if (res.ok) {
-            alert("Toda la competencia ha sido reiniciada");
-            location.reload();
-          }
+        const res = await apiFetch("/api/admin/reset-all", {
+          method: "POST",
+          headers: { Authorization: adminPass },
         });
+        if (res.ok) {
+          showAlert("Reset Total", "Toda la competencia ha sido restablecida", "success");
+          loadData();
+        }
+      };
+
+      // Auto-login si ya existe un token
+      if (adminPass) {
+        loadData();
+      }
     </script>
 
     <style>
@@ -756,6 +881,19 @@
         background: var(--secondary-color);
         color: var(--bg-dark);
       }
+      .login-card .group-header {
+    border: none;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 2.5rem;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff, var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.3));
+}
       .j-tab-content {
         display: none;
       }

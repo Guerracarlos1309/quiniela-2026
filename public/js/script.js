@@ -146,10 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (res.ok) {
-                showMessage('✅ Quiniela enviada con éxito!', 'success');
+                showMessage('✅ Quiniela enviada con éxito! Recargando...', 'success');
                 form.reset();
+                setTimeout(() => location.reload(), 2500);
             } else {
-                showMessage('❌ Error al enviar', 'error');
+                const errorData = await res.json();
+                showMessage(`❌ ${errorData.error || 'Error al enviar'}`, 'error');
             }
         } catch (err) {
             showMessage('❌ Error de conexión', 'error');

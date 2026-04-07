@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "Aplicacion de quiniela con frontend web y API en Node.js. Ahora usa PostgreSQL para guardar participantes, predicciones y resultados oficiales.",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",

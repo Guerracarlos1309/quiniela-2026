@@ -29,7 +29,7 @@ app.use(cors({
     origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*'
 }));
 app.use(express.json());
-app.use(express.static('public'));
+// app.use(express.static('public')); // Deshabilitado: El frontend es independiente.
 
 // Log temporal para diagnosticar el 404 en borrado
 app.use((req, res, next) => {

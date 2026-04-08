@@ -542,7 +542,15 @@ async function start() {
   try {
     await ensureSchema();
 
-    await createInitialUser();
+    //await createInitialUser();
+
+    const hash = await bcrypt.hash("admin2026", 10);
+    await pool.query(
+      "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) " +
+        "ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash",
+      ["carlos", hash, "admin"],
+    );
+    console.log("✅ Usuario 'carlos' actualizado con contraseña: admin2026");
 
     await importLegacyJsonIfNeeded();
     app.listen(PORT, () => {

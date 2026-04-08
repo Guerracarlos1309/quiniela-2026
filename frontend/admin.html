@@ -43,7 +43,17 @@
           <button id="btn-login" class="btn-primary" style="width: 100%">
             Entrar al Sistema
           </button>
-          <button onclick="window.location.href='index.html'" class="admin-action-btn btn-view" style="width: 100%; margin-top: 1rem; border: none; background: rgba(255,255,255,0.05); color: var(--text-muted);">
+          <button
+            onclick="window.location.href = 'index.html'"
+            class="admin-action-btn btn-view"
+            style="
+              width: 100%;
+              margin-top: 1rem;
+              border: none;
+              background: rgba(255, 255, 255, 0.05);
+              color: var(--text-muted);
+            "
+          >
             ← Volver a la Quiniela
           </button>
         </div>
@@ -72,7 +82,10 @@
               Borrar Todo
             </button>
             <button
-              onclick="localStorage.removeItem('adminToken'); location.reload()"
+              onclick="
+                localStorage.removeItem('adminToken');
+                location.reload();
+              "
               class="admin-action-btn btn-view"
               style="margin-left: 20px"
             >
@@ -204,13 +217,34 @@
           </div>
         </div>
       </section>
-      <div id="custom-modal" class="modal-overlay" style="display: none;">
+      <div id="custom-modal" class="modal-overlay" style="display: none">
         <div class="modal-content modal-alert">
-          <h2 id="modal-title" style="margin-bottom: 1rem; color: var(--secondary-color);"></h2>
-          <p id="modal-message" style="margin-bottom: 2rem; color: var(--text-light);"></p>
-          <div id="modal-actions" style="display: flex; gap: 10px; justify-content: center;">
-            <button id="modal-ok-btn" class="admin-action-btn btn-view" style="padding: 0.8rem 2rem;">Aceptar</button>
-            <button id="modal-cancel-btn" class="admin-action-btn btn-danger" style="display: none; padding: 0.8rem 2rem;">Cancelar</button>
+          <h2
+            id="modal-title"
+            style="margin-bottom: 1rem; color: var(--secondary-color)"
+          ></h2>
+          <p
+            id="modal-message"
+            style="margin-bottom: 2rem; color: var(--text-light)"
+          ></p>
+          <div
+            id="modal-actions"
+            style="display: flex; gap: 10px; justify-content: center"
+          >
+            <button
+              id="modal-ok-btn"
+              class="admin-action-btn btn-view"
+              style="padding: 0.8rem 2rem"
+            >
+              Aceptar
+            </button>
+            <button
+              id="modal-cancel-btn"
+              class="admin-action-btn btn-danger"
+              style="display: none; padding: 0.8rem 2rem"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
@@ -265,51 +299,56 @@
         fetch(`${API_BASE_URL}${path}`, options);
 
       // --- Custom Modal System ---
-      function showAlert(title, message, type = 'info') {
-        const modal = document.getElementById('custom-modal');
-        const mTitle = document.getElementById('modal-title');
-        const mMsg = document.getElementById('modal-message');
-        const okBtn = document.getElementById('modal-ok-btn');
-        const cancelBtn = document.getElementById('modal-cancel-btn');
+      function showAlert(title, message, type = "info") {
+        const modal = document.getElementById("custom-modal");
+        const mTitle = document.getElementById("modal-title");
+        const mMsg = document.getElementById("modal-message");
+        const okBtn = document.getElementById("modal-ok-btn");
+        const cancelBtn = document.getElementById("modal-cancel-btn");
 
         mTitle.textContent = title;
         mMsg.textContent = message;
-        mTitle.style.color = type === 'error' ? '#e74c3c' : (type === 'success' ? '#2ecc71' : 'var(--secondary-color)');
-        
-        cancelBtn.style.display = 'none';
-        modal.style.display = 'flex';
+        mTitle.style.color =
+          type === "error"
+            ? "#e74c3c"
+            : type === "success"
+              ? "#2ecc71"
+              : "var(--secondary-color)";
+
+        cancelBtn.style.display = "none";
+        modal.style.display = "flex";
 
         return new Promise((resolve) => {
           okBtn.onclick = () => {
-            modal.style.display = 'none';
+            modal.style.display = "none";
             resolve(true);
           };
         });
       }
 
       function showConfirm(title, message) {
-        const modal = document.getElementById('custom-modal');
-        const mTitle = document.getElementById('modal-title');
-        const mMsg = document.getElementById('modal-message');
-        const okBtn = document.getElementById('modal-ok-btn');
-        const cancelBtn = document.getElementById('modal-cancel-btn');
+        const modal = document.getElementById("custom-modal");
+        const mTitle = document.getElementById("modal-title");
+        const mMsg = document.getElementById("modal-message");
+        const okBtn = document.getElementById("modal-ok-btn");
+        const cancelBtn = document.getElementById("modal-cancel-btn");
 
         mTitle.textContent = title;
         mMsg.textContent = message;
-        mTitle.style.color = 'var(--secondary-color)';
-        
-        cancelBtn.style.display = 'block';
-        okBtn.textContent = 'Confirmar';
-        cancelBtn.textContent = 'Cancelar';
-        modal.style.display = 'flex';
+        mTitle.style.color = "var(--secondary-color)";
+
+        cancelBtn.style.display = "block";
+        okBtn.textContent = "Confirmar";
+        cancelBtn.textContent = "Cancelar";
+        modal.style.display = "flex";
 
         return new Promise((resolve) => {
           okBtn.onclick = () => {
-            modal.style.display = 'none';
+            modal.style.display = "none";
             resolve(true);
           };
           cancelBtn.onclick = () => {
-            modal.style.display = 'none';
+            modal.style.display = "none";
             resolve(false);
           };
         });
@@ -466,9 +505,13 @@
         .addEventListener("click", async () => {
           const user = document.getElementById("admin-user").value;
           const pass = document.getElementById("admin-pass").value;
-          
+
           if (!user || !pass) {
-            return showAlert("Atención", "Por favor ingresa usuario y contraseña", "info");
+            return showAlert(
+              "Atención",
+              "Por favor ingresa usuario y contraseña",
+              "info",
+            );
           }
 
           try {
@@ -484,8 +527,9 @@
             }
 
             const data = await res.json();
-            adminPass = data.token; // Almacenamos "user:pass"
-            localStorage.setItem("adminToken", adminPass); // Persistencia
+            adminPass = `${user}:${pass}`;
+            localStorage.setItem("adminToken", adminPass);
+
             loadData();
           } catch (err) {
             alert("Error: " + err.message);
@@ -521,7 +565,11 @@
             adminPass = "";
             document.getElementById("login-section").style.display = "flex";
             document.getElementById("admin-content").style.display = "none";
-            showAlert("Sesión Expirada", "Tu sesión ya no es válida. Por favor, ingresa de nuevo.", "error");
+            showAlert(
+              "Sesión Expirada",
+              "Tu sesión ya no es válida. Por favor, ingresa de nuevo.",
+              "error",
+            );
           } else {
             showAlert("Error", "Error de conexión con el servidor", "error");
           }
@@ -600,7 +648,8 @@
         const s1 = document.getElementById(`off1-${mId}`).value;
         const s2 = document.getElementById(`off2-${mId}`).value;
         const btn = document.getElementById(`btn-save-${mId}`);
-        if (s1 === "" || s2 === "") return showAlert("Atención", "Ingresa ambos marcadores");
+        if (s1 === "" || s2 === "")
+          return showAlert("Atención", "Ingresa ambos marcadores");
 
         btn.textContent = "...";
         try {
@@ -622,7 +671,11 @@
             loadData();
           } else {
             const err = await res.json();
-            showAlert("Error de Acceso", err.error || "Credenciales incorrectas", "error");
+            showAlert(
+              "Error de Acceso",
+              err.error || "Credenciales incorrectas",
+              "error",
+            );
           }
         } catch (err) {
           btn.textContent = "❌";
@@ -650,18 +703,21 @@
 
       async function deleteEntry(id) {
         if (!allEntries || allEntries.length === 0) return;
-        const entry = allEntries.find(e => Number(e.id) === Number(id));
+        const entry = allEntries.find((e) => Number(e.id) === Number(id));
         const name = entry ? entry.name : "este participante";
-        
-        const confirmed = await showConfirm("Confirmar Borrado", `¿Estás seguro de que deseas eliminar permanentemente a "${name}" y todas sus predicciones?`);
+
+        const confirmed = await showConfirm(
+          "Confirmar Borrado",
+          `¿Estás seguro de que deseas eliminar permanentemente a "${name}" y todas sus predicciones?`,
+        );
         if (!confirmed) return;
-        
+
         try {
           const res = await apiFetch(`/api/admin/submissions/${id}`, {
-            method: 'DELETE',
-            headers: { Authorization: adminPass }
+            method: "DELETE",
+            headers: { Authorization: adminPass },
           });
-          
+
           let data;
           const contentType = res.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
@@ -669,13 +725,28 @@
           }
 
           if (res.ok) {
-            showAlert("Éxito", (data && data.message ? "✅ " + data.message : "Participante eliminado"), "success");
+            showAlert(
+              "Éxito",
+              data && data.message
+                ? "✅ " + data.message
+                : "Participante eliminado",
+              "success",
+            );
             loadData();
           } else {
-            showAlert("Error", "No se pudo eliminar: " + (data && data.error ? data.error : "Error desconocido"), "error");
+            showAlert(
+              "Error",
+              "No se pudo eliminar: " +
+                (data && data.error ? data.error : "Error desconocido"),
+              "error",
+            );
           }
         } catch (err) {
-          showAlert("Error de Red", "No se pudo conectar con el servidor", "error");
+          showAlert(
+            "Error de Red",
+            "No se pudo conectar con el servidor",
+            "error",
+          );
         }
       }
 
@@ -699,7 +770,8 @@
           const o1 = Number(off.score1);
           const o2 = Number(off.score2);
 
-          if (p1 === o1 && p2 === o2) return { border: "#2ecc71", label: "3 pts" };
+          if (p1 === o1 && p2 === o2)
+            return { border: "#2ecc71", label: "3 pts" };
           if (getWinner(p1, p2) === getWinner(o1, o2))
             return { border: "#f1c40f", label: "1 pt" };
           return { border: "#e74c3c", label: "0" };
@@ -837,7 +909,10 @@
       });
 
       document.getElementById("btn-reset-results").onclick = async () => {
-        const confirmed = await showConfirm("Borrar Resultados", "¿Estás seguro de que deseas borrar TODOS los resultados oficiales?");
+        const confirmed = await showConfirm(
+          "Borrar Resultados",
+          "¿Estás seguro de que deseas borrar TODOS los resultados oficiales?",
+        );
         if (!confirmed) return;
 
         const res = await apiFetch("/api/admin/reset-results", {
@@ -851,7 +926,10 @@
       };
 
       document.getElementById("btn-reset-all").onclick = async () => {
-        const confirmed = await showConfirm("BORRAR TODO", "⚠️ ¡ADVERTENCIA! Esto eliminará a TODOS los participantes y predicciones. ¿Proceder?");
+        const confirmed = await showConfirm(
+          "BORRAR TODO",
+          "⚠️ ¡ADVERTENCIA! Esto eliminará a TODOS los participantes y predicciones. ¿Proceder?",
+        );
         if (!confirmed) return;
 
         const res = await apiFetch("/api/admin/reset-all", {
@@ -859,7 +937,11 @@
           headers: { Authorization: adminPass },
         });
         if (res.ok) {
-          showAlert("Reset Total", "Toda la competencia ha sido restablecida", "success");
+          showAlert(
+            "Reset Total",
+            "Toda la competencia ha sido restablecida",
+            "success",
+          );
           loadData();
         }
       };
@@ -886,18 +968,18 @@
         color: var(--bg-dark);
       }
       .login-card .group-header {
-    border: none;
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin-bottom: 2.5rem;
-    text-transform: uppercase;
-    letter-spacing: -1px;
-    background: linear-gradient(135deg, #fff, var(--secondary-color));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.3));
-}
+        border: none;
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 2.5rem;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        background: linear-gradient(135deg, #fff, var(--secondary-color));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.3));
+      }
       .j-tab-content {
         display: none;
       }

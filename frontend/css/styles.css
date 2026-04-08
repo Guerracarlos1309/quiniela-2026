@@ -58,10 +58,34 @@ h1 {
 }
 
 main {
-    max-width: 1200px; /* Aumentado de 1000px a 1200px */
+    max-width: 1200px;
     margin: 0 auto;
     padding: 0 2rem 5rem;
 }
+
+@media (max-width: 768px) {
+    header {
+        padding: 2.5rem 1rem;
+    }
+    
+    h1 {
+        font-size: 2.2rem;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+    }
+
+    main {
+        padding: 0 1rem 3rem;
+    }
+
+    .card {
+        padding: 1.5rem 1rem;
+        border-radius: 15px;
+    }
+}
+
 
 .card {
     background: var(--glass-bg);
@@ -306,6 +330,36 @@ input:focus {
     transform: scale(0.98);
 }
 
+@media (max-width: 768px) {
+    .hero-form-section {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-primary {
+        padding: 1.2rem 2.5rem;
+        font-size: 1rem;
+        width: 100%;
+        border-radius: 15px;
+    }
+
+    .matchday-tabs {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .tab-btn {
+        padding: 0.6rem 1rem;
+        flex: 1;
+        min-width: 100px;
+        font-size: 0.85rem;
+        margin-right: 0;
+    }
+}
+
+
 /* Response messaging */
 /* Final layout and response */
 #message-box {
@@ -503,11 +557,132 @@ input:focus {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive Table */
+/* Responsive Table & Dashboard */
 @media (max-width: 900px) {
-    .matches-table thead { display: none; }
-    .match-row-tr { display: flex; flex-direction: column; padding: 1rem; margin-bottom: 2rem; }
-    .match-row-tr td { padding: 0.5rem 0; width: 100% !important; text-align: center; }
-    .td-team { justify-content: center; font-size: 1.2rem; }
-    .td-team.right { flex-direction: row; }
+    /* Matches Table Transformation */
+    .matches-table thead { 
+        display: none; 
+    }
+    
+    .match-row-tr { 
+        display: flex; 
+        flex-direction: column; 
+        padding: 1.5rem 1rem; 
+        margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--glass-border);
+        position: relative;
+    }
+    
+    .match-row-tr:hover {
+        transform: none;
+    }
+
+    .match-row-tr td { 
+        padding: 0.5rem 0; 
+        width: 100% !important; 
+        text-align: center; 
+    }
+    
+    .td-date {
+        font-weight: 600;
+        color: var(--secondary-color);
+        border-bottom: 1px solid var(--glass-border);
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .td-team { 
+        justify-content: center; 
+        font-size: 1.1rem;
+        margin: 0.5rem 0;
+    }
+    
+    .td-team.right { 
+        flex-direction: row; 
+    }
+
+    .td-score {
+        background: rgba(0,0,0,0.2);
+        padding: 1rem !important;
+        border-radius: 12px;
+        margin: 1rem 0;
+    }
+
+    .score-input {
+        width: 60px !important;
+        height: 50px !important;
+    }
+
+    .td-stadium {
+        text-align: center;
+        width: 100% !important;
+        opacity: 0.8;
+        font-size: 0.75rem;
+    }
+
+    /* Admin Ranking Table Responsiveness */
+    .admin-table thead {
+        display: none;
+    }
+
+    .admin-table tr {
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+        border-bottom: 1px solid var(--glass-border);
+        margin-bottom: 1rem;
+        background: var(--glass-bg);
+        border-radius: 15px;
+    }
+
+    .admin-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        text-align: right;
+    }
+
+    .admin-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--secondary-color);
+        text-transform: uppercase;
+        font-size: 0.8rem;
+    }
+
+    /* Dashboard Header & Stats */
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+
+    .dashboard-header div[style*="display: flex"] {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .stat-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-value {
+        font-size: 2.2rem;
+    }
+
+    /* Login Card */
+    .login-card {
+        padding: 2rem 1.5rem;
+        width: 95%;
+    }
+
+    /* Modal Adjustments */
+    .modal-content {
+        padding: 1.5rem;
+        width: 98%;
+        margin: 10px;
+    }
 }
+

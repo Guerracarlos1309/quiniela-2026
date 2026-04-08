@@ -594,13 +594,13 @@
           .map(
             (u, i) => `
                 <tr class="match-row-tr">
-                    <td><span class="rank-badge rank-${i + 1 <= 3 ? i + 1 : "other"}">${i + 1}</span></td>
-                    <td><strong style="color: #fff">${u.name}</strong></td>
-                    <td style="text-align: right;"><span class="points-val">${u.points} pts</span></td>
-                    <td style="text-align: right;"><span class="points-val">${u.exact_hits ?? 0}</span></td>
-                    <td style="text-align: right;"><span class="points-val">${u.outcome_hits ?? 0}</span></td>
-                    <td style="text-align: right;"><span class="points-val">${u.misses ?? 0}</span></td>
-                    <td style="text-align: right;"><span class="points-val">${u.matches_scored ?? 0}</span></td>
+                    <td data-label="POS"><span class="rank-badge rank-${i + 1 <= 3 ? i + 1 : "other"}">${i + 1}</span></td>
+                    <td data-label="PARTICIPANTE"><strong style="color: #fff">${u.name}</strong></td>
+                    <td data-label="PTS" style="text-align: right;"><span class="points-val">${u.points} pts</span></td>
+                    <td data-label="3 PTS" style="text-align: right;"><span class="points-val">${u.exact_hits ?? 0}</span></td>
+                    <td data-label="1 PT" style="text-align: right;"><span class="points-val">${u.outcome_hits ?? 0}</span></td>
+                    <td data-label="0" style="text-align: right;"><span class="points-val">${u.misses ?? 0}</span></td>
+                    <td data-label="EVAL" style="text-align: right;"><span class="points-val">${u.matches_scored ?? 0}</span></td>
                 </tr>
             `,
           )
@@ -688,10 +688,10 @@
           .map(
             (e, index) => `
                 <tr class="match-row-tr">
-                    <td><strong style="color: #fff">${e.name}</strong></td>
-                    <td>${e.phone}</td>
-                    <td><span class="points-val">${e.currentPoints} pts</span></td>
-                    <td style="text-align: right;">
+                    <td data-label="NOMBRE"><strong style="color: #fff">${e.name}</strong></td>
+                    <td data-label="TELÉFONO">${e.phone}</td>
+                    <td data-label="PUNTOS"><span class="points-val">${e.currentPoints} pts</span></td>
+                    <td data-label="ACCIONES" style="text-align: right;">
                         <button onclick="viewUserPredictions(${index})" class="admin-action-btn btn-view">Ver</button>
                         <button onclick="deleteEntry(${e.id})" class="admin-action-btn btn-danger" style="padding: 0.6rem; margin-left: 5px;">🗑️</button>
                     </td>

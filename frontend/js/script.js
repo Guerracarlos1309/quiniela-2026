@@ -152,9 +152,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         </td>
                         <td class="td-score">
                             <div class="score-inputs-container">
-                                <input type="number" class="score-input" data-team="${t1}" min="0" value="0">
+                                <input type="number" class="score-input" data-team="${t1}" min="0" max="20" value="" placeholder="0">
                                 <span>-</span>
-                                <input type="number" class="score-input" data-team="${t2}" min="0" value="0">
+                                <input type="number" class="score-input" data-team="${t2}" min="0" max="20" value="" placeholder="0">
                             </div>
                         </td>
                         <td class="td-team right">
@@ -170,7 +170,39 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   generateMatches();
+ 
+  // Restringir los inputs de score (Solo enteros 0-20, sin signos ni decimales)
+  document.addEventListener("keydown", (e) => {
+    if (e.target.classList.contains("score-input")) {
+      const invalidChars = [".", ",", "-", "+", "e"];
+      if (invalidChars.includes(e.key)) {
+        e.preventDefault();
+      }
+    }
+  });
 
+  document.addEventListener("input", (e) => {
+    if (e.target.classList.contains("score-input")) {
+      const input = e.target;
+      
+      // Si está vacío, dejarlo vacío (mostrará placeholder)
+      if (input.value === "") return;
+
+      // Eliminar cualquier cosa que no sea dígito
+      let valStr = input.value.replace(/\D/g, "");
+      
+      // Convertir a número para limpiar ceros a la izquierda (05 -> 5)
+      let val = parseInt(valStr, 10);
+      
+      if (isNaN(val)) {
+        input.value = "";
+      } else {
+        if (val > 20) val = 20;
+        if (val < 0) val = 0;
+        input.value = val;
+      }
+    }
+  });
   // Tabs Logic
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabContents = document.querySelectorAll(".tab-content");
@@ -209,9 +241,9 @@ document.addEventListener("DOMContentLoaded", () => {
       predictions.push({
         matchId: row.dataset.match,
         team1: inputs[0].dataset.team,
-        score1: inputs[0].value,
+        score1: inputs[0].value || "0",
         team2: inputs[1].dataset.team,
-        score2: inputs[1].value,
+        score2: inputs[1].value || "0",
       });
     });
 
@@ -228,13 +260,15 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => location.reload(), 2500);
       } else {
         const errorData = await res.json();
-        showMessage(`❌ ${errorData.error || "Error al enviar"}`, "error");
+        showMessage(`❌ ${errorData.error || "Error al enviar"}. Reiniciando...`, "error");
+        // Reiniciar página incluso en error después de mostrar el mensaje
+        setTimeout(() => location.reload(), 3000);
       }
     } catch (err) {
-      showMessage("❌ Error de conexión", "error");
-      // 3. Habilitar botón y restaurar texto en caso de error
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Enviar Quiniela";
+      console.error(err);
+      showMessage("❌ Error de conexión. Reiniciando...", "error");
+      // No rehabilitar el botón, resetear página
+      setTimeout(() => location.reload(), 3000);
     }
   });
 

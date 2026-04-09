@@ -550,7 +550,6 @@ async function start() {
         "ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash",
       ["carlos", hash, "admin"],
     );
-    console.log("✅ Usuario 'carlos' actualizado con contraseña: admin2026");
 
     await importLegacyJsonIfNeeded();
     app.listen(PORT, () => {

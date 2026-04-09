@@ -12,19 +12,25 @@
         <p class="subtitle">Ingresa tus predicciones para la fase de grupos</p>
     </header>
 
-    <main>
-        <section class="card">
-            <div class="group-header">⚽ Datos del Participante</div>
-            <div class="hero-form-section">
-                <div class="input-group">
-                    <label for="full-name">Nombre Completo</label>
-                    <input type="text" id="full-name" placeholder="Ej. Juan Pérez" required>
+    <main id="auth-section" class="card auth-container">
+        <div class="group-header">⚽ Bienvenido a la Quiniela</div>
+        <div class="auth-buttons">
+            <button id="show-login" class="btn-primary">Iniciar Sesión</button>
+            <button id="show-register" class="btn-secondary">Registrarse</button>
+        </div>
+        <p class="auth-hint">Regístrate para guardar tus predicciones y ver tu tabla de posiciones</p>
+    </main>
+
+    <main id="main-content" style="display: none;">
+        <section class="card user-panel">
+            <div class="user-info-header">
+                <div>
+                    <h2 id="user-display-name">Usuario</h2>
+                    <p id="user-display-phone">Tel: ---</p>
                 </div>
-                <div class="input-group">
-                    <label for="phone">Teléfono</label>
-                    <input type="tel" id="phone" placeholder="Ej. +52 5512345678" required>
-                </div>
+                <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
             </div>
+            <div id="read-only-badge" class="badge" style="display: none;">MODO LECTURA (Enviado)</div>
         </section>
 
         <!-- Tabs for Groups -->
@@ -33,12 +39,51 @@
         <form id="quiniela-form">
             <div id="groups-wrapper"></div>
 
-            <div class="submit-container">
+            <div id="submit-section" class="submit-container">
                 <button type="submit" class="btn-primary">Enviar Quiniela completa</button>
                 <div id="message-box"></div>
             </div>
         </form>
     </main>
+
+    <!-- Modals -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-content auth-modal">
+            <span class="close-modal">&times;</span>
+            <div class="group-header">Iniciar Sesión</div>
+            <div class="input-group">
+                <label>Teléfono</label>
+                <input type="tel" id="login-phone" placeholder="Ej. 5512345678">
+            </div>
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input type="password" id="login-pw">
+            </div>
+            <button id="login-submit" class="btn-primary full-width">Entrar</button>
+            <div id="login-msg" class="msg"></div>
+        </div>
+    </div>
+
+    <div id="register-modal" class="modal-overlay">
+        <div class="modal-content auth-modal">
+            <span class="close-modal">&times;</span>
+            <div class="group-header">Crear Cuenta</div>
+            <div class="input-group">
+                <label>Nombre Completo</label>
+                <input type="text" id="reg-name" placeholder="Ej. Juan Pérez">
+            </div>
+            <div class="input-group">
+                <label>Teléfono</label>
+                <input type="tel" id="reg-phone" placeholder="Ej. 5512345678">
+            </div>
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input type="password" id="reg-pw">
+            </div>
+            <button id="register-submit" class="btn-primary full-width">Registrarme</button>
+            <div id="reg-msg" class="msg"></div>
+        </div>
+    </div>
 
     <script src="js/config.js"></script>
     <script src="js/script.js"></script>

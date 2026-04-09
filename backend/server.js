@@ -84,14 +84,26 @@ async function isAdminAuthorized(req) {
 }
 
 async function ensureSchema() {
+  // Ensure submissions has password_hash and role for participant auth
   await pool.query(`
         CREATE TABLE IF NOT EXISTS submissions (
             id BIGSERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             phone TEXT NOT NULL UNIQUE,
+            password_hash TEXT,
+            role TEXT DEFAULT 'participant',
             submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
     `);
+
+  // Migration for existing tables - ensure columns exist
+  try {
+    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS password_hash TEXT;");
+    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'participant';");
+    console.log("✅ Submissions table migration checked/applied.");
+  } catch (err) {
+    console.error("❌ Migration error (submissions):", err.message);
+  }
 
   await pool.query(`
         CREATE TABLE IF NOT EXISTS predictions (
@@ -187,79 +199,157 @@ app.get("/api/ping", (req, res) => {
 
 // API Endpoints
 app.post("/api/predict", async (req, res) => {
-  const { name, phone, predictions } = req.body;
+  const auth = req.headers.authorization;
+  if (!auth || !auth.includes(":")) return res.status(401).json({ error: "No autorizado" });
 
-  if (
-    !name ||
-    !phone ||
-    !Array.isArray(predictions) ||
-    predictions.length === 0
-  ) {
-    return res.status(400).json({ error: "Faltan datos obligatorios" });
-  }
-
-  // Normalizar teléfono: eliminar todo lo que no sea dígito
+  const [phone, password] = auth.split(":");
   const cleanPhone = String(phone).replace(/\D/g, "");
-  if (cleanPhone.length < 7) {
-    return res.status(400).json({ error: "Número de teléfono inválido" });
+
+  const { predictions } = req.body;
+  if (!Array.isArray(predictions) || predictions.length === 0) {
+    return res.status(400).json({ error: "Faltan predicciones" });
   }
 
   const client = await pool.connect();
   try {
-    const existing = await client.query(
-      "SELECT id FROM submissions WHERE phone = $1",
-      [cleanPhone],
+    // Verificar usuario
+    const userRes = await client.query(
+      "SELECT id, password_hash FROM submissions WHERE phone = $1",
+      [cleanPhone]
     );
+
+    if (userRes.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
+    const user = userRes.rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: "Token inválido" });
+
+    // Verificar si ya tiene predicciones
+    const existing = await client.query(
+      "SELECT id FROM predictions WHERE submission_id = $1",
+      [user.id]
+    );
+
     if (existing.rows.length > 0) {
-      client.release();
-      return res.status(400).json({
-        error: "Este número de teléfono ya ha registrado una participación",
-      });
+      return res.status(400).json({ error: "Ya has registrado tus predicciones" });
     }
 
     await client.query("BEGIN");
-    const submission = await client.query(
-      "INSERT INTO submissions (name, phone) VALUES ($1, $2) RETURNING id;",
-      [name, cleanPhone],
-    );
-    const submissionId = submission.rows[0].id;
 
     for (const p of predictions) {
       await client.query(
         `INSERT INTO predictions (submission_id, match_id, team1, score1, team2, score2)
                  VALUES ($1, $2, $3, $4, $5, $6);`,
         [
-          submissionId,
+          user.id,
           p.matchId,
           p.team1,
           parseInt(p.score1, 10),
           p.team2,
           parseInt(p.score2, 10),
-        ],
+        ]
       );
     }
     await client.query("COMMIT");
-    res
-      .status(201)
-      .json({ message: "Predicción guardada con éxito", id: submissionId });
+    res.status(201).json({ message: "Predicciones guardadas con éxito" });
   } catch (error) {
     await client.query("ROLLBACK");
-
-    // Capturar error de duplicado (Postgres 23505 o mensaje de unique)
-    if (
-      error.code === "23505" ||
-      (error.message && error.message.toLowerCase().includes("unique"))
-    ) {
-      return res.status(400).json({
-        error: "Este número de teléfono ya ha registrado una participación",
-      });
-    }
-
-    console.error("--- ERROR CRÍTICO AL GUARDAR ---");
-    console.error(error);
-    res.status(500).json({ error: "Error al guardar los datos" });
+    console.error("Error al guardar predicciones:", error);
+    res.status(500).json({ error: "Error al guardar datos" });
   } finally {
     client.release();
+  }
+});
+
+// Participant Registry & Login
+app.post("/api/register", async (req, res) => {
+  const { name, phone, password } = req.body;
+  if (!name || !phone || !password) {
+    return res.status(400).json({ error: "Faltan datos obligatorios" });
+  }
+
+  const cleanPhone = String(phone).replace(/\D/g, "");
+  const hash = await bcrypt.hash(password, 10);
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO submissions (name, phone, password_hash) VALUES ($1, $2, $3) RETURNING id, name, phone",
+      [name, cleanPhone, hash]
+    );
+    res.status(201).json({ 
+      message: "Registro exitoso", 
+      user: result.rows[0],
+      token: `${cleanPhone}:${password}`
+    });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Este número de teléfono ya está registrado" });
+    }
+    console.error("REGISTRATION ERROR:", err);
+    res.status(500).json({ error: "Error al registrar usuario: " + err.message });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  const { phone, password } = req.body;
+  if (!phone || !password) return res.status(400).json({ error: "Faltan credenciales" });
+
+  const cleanPhone = String(phone).replace(/\D/g, "");
+
+  try {
+    const result = await pool.query(
+      "SELECT id, name, phone, password_hash FROM submissions WHERE phone = $1",
+      [cleanPhone]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: "Usuario no encontrado" });
+    }
+
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
+
+    res.json({ 
+      message: "Login exitoso", 
+      user: { id: user.id, name: user.name, phone: user.phone },
+      token: `${cleanPhone}:${password}`
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Error en el servidor" });
+  }
+});
+
+app.get("/api/user/me", async (req, res) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.includes(":")) return res.status(401).json({ error: "No autorizado" });
+
+  const [phone, password] = auth.split(":");
+  const cleanPhone = String(phone).replace(/\D/g, "");
+
+  try {
+    const result = await pool.query(
+      "SELECT id, name, phone, password_hash FROM submissions WHERE phone = $1",
+      [cleanPhone]
+    );
+
+    if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
+
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: "Token inválido" });
+
+    // Buscar si ya tiene predicciones
+    const predictionsRes = await pool.query(
+      "SELECT match_id, team1, score1, team2, score2 FROM predictions WHERE submission_id = $1",
+      [user.id]
+    );
+
+    res.json({
+      user: { id: user.id, name: user.name, phone: user.phone },
+      predictions: predictionsRes.rows
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener perfil" });
   }
 });
 

@@ -167,14 +167,16 @@ document.addEventListener("DOMContentLoaded", () => {
     ]
   };
 
-  function generateMatches() {
+  let currentUser = null;
+  let userToken = localStorage.getItem("quiniela_token");
+
+  function generateMatches(userPredictions = null) {
     const groupsWrapper = document.getElementById("groups-wrapper");
     const tabsContainer = document.getElementById("groups-tabs");
     groupsWrapper.innerHTML = "";
     tabsContainer.innerHTML = "";
 
     Object.keys(matchesByGroup).forEach((group, gIdx) => {
-      // Create Tab Button
       const btn = document.createElement("button");
       btn.className = `tab-btn ${gIdx === 0 ? "active" : ""}`;
       btn.dataset.tab = `group-${group}`;
@@ -186,16 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById(`group-${group}`).classList.add("active");
       });
       tabsContainer.appendChild(btn);
-    });
 
-    // Soporte para scroll horizontal con la rueda del ratón en escritorio
-    tabsContainer.addEventListener("wheel", (evt) => {
-      evt.preventDefault();
-      tabsContainer.scrollLeft += evt.deltaY;
-    });
-
-    Object.keys(matchesByGroup).forEach((group, gIdx) => {
-      // Create Group Content
       const groupDiv = document.createElement("div");
       groupDiv.id = `group-${group}`;
       groupDiv.className = `tab-content ${gIdx === 0 ? "active" : ""}`;
@@ -206,25 +199,35 @@ document.addEventListener("DOMContentLoaded", () => {
         const matchId = `G${group}_M${mIdx + 1}`;
         const flag1 = flags[t1] || "un";
         const flag2 = flags[t2] || "un";
+        
+        let s1 = "", s2 = "";
+        if (userPredictions) {
+          const pred = userPredictions.find(p => p.match_id === matchId);
+          if (pred) {
+            s1 = pred.score1;
+            s2 = pred.score2;
+          }
+        }
+
         matchesHtml += `
           <tr class="match-row-tr" data-match="${matchId}" data-group="${group}">
-            <td class="td-date">${time}</td>
-            <td class="td-team">
+            <td class="td-date" data-label="Fecha">${time}</td>
+            <td class="td-team" data-label="Local">
               <img src="https://flagcdn.com/w40/${flag1}.png" class="flag-icon" alt="${t1}">
               <span>${t1}</span>
             </td>
-            <td class="td-score">
+            <td class="td-score" data-label="Resultado">
               <div class="score-inputs-container">
-                <input type="number" class="score-input" data-team="${t1}" data-group="${group}" min="0" max="20" placeholder="0">
+                <input type="number" class="score-input" data-team="${t1}" data-group="${group}" min="0" max="20" placeholder="0" value="${s1}" ${userPredictions ? 'disabled' : ''}>
                 <span>-</span>
-                <input type="number" class="score-input" data-team="${t2}" data-group="${group}" min="0" max="20" placeholder="0">
+                <input type="number" class="score-input" data-team="${t2}" data-group="${group}" min="0" max="20" placeholder="0" value="${s2}" ${userPredictions ? 'disabled' : ''}>
               </div>
             </td>
-            <td class="td-team right">
+            <td class="td-team right" data-label="Visitante">
               <img src="https://flagcdn.com/w40/${flag2}.png" class="flag-icon" alt="${t2}">
               <span>${t2}</span>
             </td>
-            <td class="td-stadium">Por definir</td>
+            <td class="td-stadium" data-label="Estadio">Por definir</td>
           </tr>
         `;
       });
@@ -249,11 +252,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     <img src="https://flagcdn.com/w20/${flags[team] || "un"}.png" alt="">
                     ${team}
                   </td>
-                  <td class="std-jj">0</td>
-                  <td class="std-g">0</td>
-                  <td class="std-e">0</td>
-                  <td class="std-p">0</td>
-                  <td class="std-pts">0</td>
+                  <td data-label="JJ">0</td>
+                  <td data-label="G">0</td>
+                  <td data-label="E">0</td>
+                  <td data-label="P">0</td>
+                  <td data-label="Pts" class="std-pts-val">0</td>
                 </tr>
               `).join("")}
             </tbody>
@@ -269,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <tr>
               <th>Fecha y Hora</th>
               <th>Local</th>
-              <th style="align:center">Resultado</th>
+              <th>Resultado</th>
               <th>Visitante</th>
               <th>Estadio</th>
             </tr>
@@ -277,53 +280,37 @@ document.addEventListener("DOMContentLoaded", () => {
           <tbody>${matchesHtml}</tbody>
         </table>
       `;
-
       groupsWrapper.appendChild(groupDiv);
     });
+
+    Object.keys(matchesByGroup).forEach(group => updateStandings(group));
   }
 
   function updateStandings(group) {
     const teams = groupsData[group];
     const standings = {};
-    teams.forEach(t => {
-      standings[t] = { jj: 0, g: 0, e: 0, p: 0, pts: 0 };
-    });
+    teams.forEach(t => { standings[t] = { jj: 0, g: 0, e: 0, p: 0, pts: 0 }; });
 
     const rows = document.querySelectorAll(`.match-row-tr[data-group="${group}"]`);
     rows.forEach(row => {
       const inputs = row.querySelectorAll(".score-input");
       const s1 = inputs[0].value;
       const s2 = inputs[1].value;
-
       if (s1 !== "" && s2 !== "") {
         const team1 = inputs[0].dataset.team;
         const team2 = inputs[1].dataset.team;
         const score1 = parseInt(s1, 10);
         const score2 = parseInt(s2, 10);
-
-        standings[team1].jj++;
-        standings[team2].jj++;
-
-        if (score1 > score2) {
-          standings[team1].g++;
-          standings[team1].pts += 3;
-          standings[team2].p++;
-        } else if (score1 < score2) {
-          standings[team2].g++;
-          standings[team2].pts += 3;
-          standings[team1].p++;
-        } else {
-          standings[team1].e++;
-          standings[team1].pts += 1;
-          standings[team2].e++;
-          standings[team2].pts += 1;
-        }
+        standings[team1].jj++; standings[team2].jj++;
+        if (score1 > score2) { standings[team1].g++; standings[team1].pts += 3; standings[team2].p++; }
+        else if (score1 < score2) { standings[team2].g++; standings[team2].pts += 3; standings[team1].p++; }
+        else { standings[team1].e++; standings[team1].pts += 1; standings[team2].e++; standings[team2].pts += 1; }
       }
     });
 
-    // Update UI
-    const sortedTeams = Object.keys(standings).sort((a,b) => standings[b].pts - standings[a].pts);
+    const sortedTeams = Object.keys(standings).sort((a,b) => standings[b].pts - standings[a].pts || (standings[b].g - standings[a].g));
     const tbody = document.querySelector(`#standings-${group} tbody`);
+    if (!tbody) return;
     tbody.innerHTML = "";
     sortedTeams.forEach(team => {
       const s = standings[team];
@@ -333,75 +320,149 @@ document.addEventListener("DOMContentLoaded", () => {
             <img src="https://flagcdn.com/w20/${flags[team] || "un"}.png" alt="">
             ${team}
           </td>
-          <td>${s.jj}</td>
-          <td>${s.g}</td>
-          <td>${s.e}</td>
-          <td>${s.p}</td>
-          <td class="std-pts-val">${s.pts}</td>
+          <td data-label="JJ">${s.jj}</td>
+          <td data-label="G">${s.g}</td>
+          <td data-label="E">${s.e}</td>
+          <td data-label="P">${s.p}</td>
+          <td data-label="Pts" class="std-pts-val">${s.pts}</td>
         </tr>
       `);
     });
   }
 
-  generateMatches();
- 
-  // Restringir los inputs de score (Solo enteros 0-20, sin signos ni decimales)
+  const tabsContainer = document.getElementById("groups-tabs");
+  tabsContainer.addEventListener("wheel", (evt) => {
+    evt.preventDefault();
+    tabsContainer.scrollLeft += evt.deltaY;
+  });
+
+  async function checkAuth() {
+    if (!userToken) {
+      showSection("auth");
+      return;
+    }
+    try {
+      const res = await apiFetch("/api/user/me", {
+        headers: { "Authorization": userToken }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        currentUser = data.user;
+        document.getElementById("user-display-name").textContent = currentUser.name;
+        document.getElementById("user-display-phone").textContent = `Tel: ${currentUser.phone}`;
+        showSection("main");
+        if (data.predictions && data.predictions.length > 0) {
+          document.getElementById("read-only-badge").style.display = "inline-block";
+          document.getElementById("submit-section").style.display = "none";
+          generateMatches(data.predictions);
+        } else {
+          document.getElementById("read-only-badge").style.display = "none";
+          document.getElementById("submit-section").style.display = "block";
+          generateMatches();
+        }
+      } else {
+        logout();
+      }
+    } catch (err) {
+      console.error(err);
+      logout();
+    }
+  }
+
+  function showSection(type) {
+    document.getElementById("auth-section").style.display = type === "auth" ? "block" : "none";
+    document.getElementById("main-content").style.display = type === "main" ? "block" : "none";
+  }
+
+  function logout() {
+    localStorage.removeItem("quiniela_token");
+    userToken = null;
+    currentUser = null;
+    location.reload();
+  }
+
+  const loginModal = document.getElementById("login-modal");
+  const regModal = document.getElementById("register-modal");
+  document.getElementById("show-login").onclick = () => loginModal.style.display = "flex";
+  document.getElementById("show-register").onclick = () => regModal.style.display = "flex";
+  document.querySelectorAll(".close-modal").forEach(span => {
+    span.onclick = () => { loginModal.style.display = "none"; regModal.style.display = "none"; };
+  });
+
+  document.getElementById("login-submit").onclick = async () => {
+    const phone = document.getElementById("login-phone").value;
+    const password = document.getElementById("login-pw").value;
+    const msg = document.getElementById("login-msg");
+    const res = await apiFetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem("quiniela_token", data.token);
+      location.reload();
+    } else {
+      msg.textContent = data.error;
+      msg.style.color = "red";
+    }
+  };
+
+  document.getElementById("login-pw").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("login-submit").click();
+  });
+
+  document.getElementById("register-submit").onclick = async () => {
+    const name = document.getElementById("reg-name").value;
+    const phone = document.getElementById("reg-phone").value;
+    const password = document.getElementById("reg-pw").value;
+    const msg = document.getElementById("reg-msg");
+    const res = await apiFetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem("quiniela_token", data.token);
+      location.reload();
+    } else {
+      msg.textContent = data.error;
+      msg.style.color = "red";
+    }
+  };
+
+  document.getElementById("reg-pw").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("register-submit").click();
+  });
+
+  document.getElementById("logout-btn").onclick = logout;
+
   document.addEventListener("keydown", (e) => {
     if (e.target.classList.contains("score-input")) {
-      const invalidChars = [".", ",", "-", "+", "e"];
-      if (invalidChars.includes(e.key)) {
-        e.preventDefault();
-      }
+      if ([".", ",", "-", "+", "e"].includes(e.key)) e.preventDefault();
     }
   });
 
   document.addEventListener("input", (e) => {
     if (e.target.classList.contains("score-input")) {
       const input = e.target;
-      
-      // Si está vacío, dejarlo vacío (mostrará placeholder)
-      if (input.value === "") {
-        updateStandings(input.dataset.group);
-        return;
-      }
-
-      // Eliminar cualquier cosa que no sea dígito
-      let valStr = input.value.replace(/\D/g, "");
-      
-      // Convertir a número para limpiar ceros a la izquierda (05 -> 5)
-      let val = parseInt(valStr, 10);
-      
-      if (isNaN(val)) {
-        input.value = "";
-      } else {
-        if (val > 20) val = 20;
-        if (val < 0) val = 0;
-        input.value = val;
-      }
-      
-      // Actualizar tabla de posiciones del grupo
+      if (input.value === "") { updateStandings(input.dataset.group); return; }
+      let val = parseInt(input.value.replace(/\D/g, ""), 10);
+      if (isNaN(val)) input.value = "";
+      else { if (val > 20) val = 20; if (val < 0) val = 0; input.value = val; }
       updateStandings(input.dataset.group);
     }
   });
 
-  // Handle Form Submission
   const form = document.getElementById("quiniela-form");
   const messageBox = document.getElementById("message-box");
   const submitBtn = form.querySelector('button[type="submit"]');
 
   form.addEventListener("submit", async (e) => {
-    // 1. Deshabilitar botón y mostrar loading
+    e.preventDefault();
     submitBtn.disabled = true;
     submitBtn.textContent = "Enviando...";
-
-    e.preventDefault();
-    const name = document.getElementById("full-name").value;
-    const phone = document.getElementById("phone").value;
-
-    if (!name || !phone) {
-      showMessage("Faltan datos de contacto", "error");
-      return;
-    }
 
     const predictions = [];
     document.querySelectorAll(".match-row-tr").forEach((row) => {
@@ -418,25 +479,25 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await apiFetch("/api/predict", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, predictions }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": userToken
+        },
+        body: JSON.stringify({ predictions }),
       });
-
       if (res.ok) {
-        showMessage("✅ Quiniela enviada con éxito! Recargando...", "success");
-        form.reset();
-        setTimeout(() => location.reload(), 2500);
+        showMessage("✅ Quiniela enviada con éxito!", "success");
+        setTimeout(() => location.reload(), 2000);
       } else {
         const errorData = await res.json();
-        showMessage(`❌ ${errorData.error || "Error al enviar"}. Reiniciando...`, "error");
-        // Reiniciar página incluso en error después de mostrar el mensaje
-        setTimeout(() => location.reload(), 3000);
+        showMessage(`❌ ${errorData.error || "Error al enviar"}`, "error");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Enviar Quiniela completa";
       }
     } catch (err) {
       console.error(err);
-      showMessage("❌ Error de conexión. Reiniciando...", "error");
-      // No rehabilitar el botón, resetear página
-      setTimeout(() => location.reload(), 3000);
+      showMessage("❌ Error de conexión", "error");
+      submitBtn.disabled = false;
     }
   });
 
@@ -446,4 +507,6 @@ document.addEventListener("DOMContentLoaded", () => {
     messageBox.style.display = "block";
     setTimeout(() => (messageBox.style.display = "none"), 4000);
   }
+
+  checkAuth();
 });

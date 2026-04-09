@@ -614,7 +614,6 @@
           const groupDiv = document.createElement("div");
           groupDiv.id = `admin-group-${group}`;
           groupDiv.className = `admin-group-content ${gIdx === 0 ? "active" : ""}`;
-          groupDiv.style.display = gIdx === 0 ? "block" : "none";
           
           let matchesHtml = "";
           matchesByGroup[group].forEach((match, mIdx) => {

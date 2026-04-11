@@ -178,6 +178,7 @@
                   <th style="color: var(--secondary-color)">NOMBRE</th>
                   <th style="color: var(--secondary-color)">TELÉFONO</th>
                   <th style="color: var(--secondary-color)">PUNTOS</th>
+                  <th style="color: var(--secondary-color)">ESTADO</th>
                   <th style="color: var(--secondary-color); text-align: right">
                     ACCIONES
                   </th>
@@ -703,7 +704,13 @@
                     <td data-label="NOMBRE"><strong style="color: #fff">${e.name}</strong></td>
                     <td data-label="TELÉFONO">${e.phone}</td>
                     <td data-label="PUNTOS"><span class="points-val">${e.currentPoints} pts</span></td>
+                    <td data-label="ESTADO">
+                      <span class="rank-badge" style="background: ${e.is_active ? "#2ecc71" : "#e74c3c"}; font-size: 0.7rem; padding: 0.2rem 0.5rem; display: inline-block; min-width: 60px; text-align: center;">
+                        ${e.is_active ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
                     <td data-label="ACCIONES" style="text-align: right;">
+                        <button onclick="toggleUserStatus(${e.id})" class="admin-action-btn btn-view" style="padding: 0.5rem; margin-right: 5px;" title="${e.is_active ? "Desactivar" : "Activar"}">${e.is_active ? "🔒" : "🔓"}</button>
                         <button onclick="viewUserPredictions(${index})" class="admin-action-btn btn-view">Ver</button>
                         <button onclick="deleteEntry(${e.id})" class="admin-action-btn btn-danger" style="padding: 0.6rem; margin-left: 5px;">🗑️</button>
                     </td>
@@ -759,6 +766,23 @@
             "No se pudo conectar con el servidor",
             "error",
           );
+        }
+      }
+
+      async function toggleUserStatus(id) {
+        try {
+          const res = await apiFetch(`/api/admin/submissions/${id}/toggle-active`, {
+            method: "POST",
+            headers: { Authorization: adminPass },
+          });
+          if (res.ok) {
+            loadData();
+          } else {
+            const err = await res.json();
+            showAlert("Error", err.error || "No se pudo cambiar el estado", "error");
+          }
+        } catch (err) {
+          showAlert("Error", "Error de conexión", "error");
         }
       }
 

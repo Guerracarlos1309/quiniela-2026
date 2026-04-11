@@ -92,6 +92,7 @@ async function ensureSchema() {
             phone TEXT NOT NULL UNIQUE,
             password_hash TEXT,
             role TEXT DEFAULT 'participant',
+            is_active BOOLEAN DEFAULT FALSE,
             submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
     `);
@@ -100,6 +101,7 @@ async function ensureSchema() {
   try {
     await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS password_hash TEXT;");
     await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'participant';");
+    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE;");
     console.log("✅ Submissions table migration checked/applied.");
   } catch (err) {
     console.error("❌ Migration error (submissions):", err.message);
@@ -214,7 +216,7 @@ app.post("/api/predict", async (req, res) => {
   try {
     // Verificar usuario
     const userRes = await client.query(
-      "SELECT id, password_hash FROM submissions WHERE phone = $1",
+      "SELECT id, password_hash, is_active FROM submissions WHERE phone = $1",
       [cleanPhone]
     );
 
@@ -222,6 +224,10 @@ app.post("/api/predict", async (req, res) => {
     const user = userRes.rows[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ error: "Token inválido" });
+
+    if (!user.is_active) {
+      return res.status(403).json({ error: "Estás siendo revisado, espera hasta que activen tu cuenta" });
+    }
 
     // Verificar si ya tiene predicciones
     const existing = await client.query(
@@ -272,7 +278,7 @@ app.post("/api/register", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "INSERT INTO submissions (name, phone, password_hash) VALUES ($1, $2, $3) RETURNING id, name, phone",
+      "INSERT INTO submissions (name, phone, password_hash) VALUES ($1, $2, $3) RETURNING id, name, phone, is_active",
       [name, cleanPhone, hash]
     );
     res.status(201).json({ 
@@ -297,7 +303,7 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT id, name, phone, password_hash FROM submissions WHERE phone = $1",
+      "SELECT id, name, phone, password_hash, is_active FROM submissions WHERE phone = $1",
       [cleanPhone]
     );
 
@@ -311,7 +317,7 @@ app.post("/api/login", async (req, res) => {
 
     res.json({ 
       message: "Login exitoso", 
-      user: { id: user.id, name: user.name, phone: user.phone },
+      user: { id: user.id, name: user.name, phone: user.phone, is_active: user.is_active },
       token: `${cleanPhone}:${password}`
     });
   } catch (error) {
@@ -328,7 +334,7 @@ app.get("/api/user/me", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT id, name, phone, password_hash FROM submissions WHERE phone = $1",
+      "SELECT id, name, phone, password_hash, is_active FROM submissions WHERE phone = $1",
       [cleanPhone]
     );
 
@@ -345,7 +351,7 @@ app.get("/api/user/me", async (req, res) => {
     );
 
     res.json({
-      user: { id: user.id, name: user.name, phone: user.phone },
+      user: { id: user.id, name: user.name, phone: user.phone, is_active: user.is_active },
       predictions: predictionsRes.rows
     });
   } catch (error) {
@@ -489,6 +495,7 @@ app.get("/api/admin/entries", async (req, res) => {
                 s.id,
                 s.name,
                 s.phone,
+                s.is_active,
                 s.submitted_at AS timestamp,
                 COALESCE(SUM(
                     CASE
@@ -540,6 +547,7 @@ app.get("/api/admin/entries", async (req, res) => {
       id: Number(entry.id),
       name: entry.name,
       phone: entry.phone,
+      is_active: entry.is_active,
       timestamp: entry.timestamp,
       currentPoints: entry.currentPoints,
       predictions: predMap.get(entry.id) || [],
@@ -586,6 +594,23 @@ app.delete("/api/admin/submissions/:id", async (req, res) => {
   } catch (error) {
     console.error("Error al borrar participante en BD:", error);
     res.status(500).json({ error: "Error al borrar el participante" });
+  }
+});
+
+app.post("/api/admin/submissions/:id/toggle-active", async (req, res) => {
+  const { id } = req.params;
+  if (!(await isAdminAuthorized(req)))
+    return res.status(401).json({ error: "No autorizado" });
+
+  try {
+    const result = await pool.query(
+      "UPDATE submissions SET is_active = NOT is_active WHERE id = $1 RETURNING is_active",
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json({ message: "Estado de usuario actualizado", is_active: result.rows[0].is_active });
+  } catch (err) {
+    res.status(500).json({ error: "Error al actualizar estado" });
   }
 });
 

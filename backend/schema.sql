@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     id BIGSERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     phone TEXT NOT NULL UNIQUE,
+    is_active BOOLEAN DEFAULT FALSE,
     submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

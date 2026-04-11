@@ -461,6 +461,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (currentUser && !currentUser.is_active) {
+      showMessage("❌ Estás siendo revisado, espera hasta que activen tu cuenta", "error");
+      return;
+    }
     submitBtn.disabled = true;
     submitBtn.textContent = "Enviando...";
 

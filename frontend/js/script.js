@@ -437,15 +437,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("show-login").onclick = () => loginModal.style.display = "flex";
   document.getElementById("show-register").onclick = () => regModal.style.display = "flex";
   
-  document.getElementById("btn-jump-rules").onclick = () => {
-    if (userToken) {
-        // Logged in: show modal
-        rulesModal.style.display = "flex";
-    } else {
-        // Guest: scroll to static section
-        document.getElementById("rules-section").scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  const rulesBtn = document.getElementById("btn-jump-rules");
+  if (rulesBtn) {
+    rulesBtn.onclick = () => {
+      if (userToken) {
+          // Logged in: show modal
+          rulesModal.style.display = "flex";
+      } else {
+          // Guest: scroll to static section
+          const rulesSect = document.getElementById("rules-section");
+          if (rulesSect) rulesSect.scrollIntoView({ behavior: "smooth" });
+      }
+    };
+  }
 
   document.querySelectorAll(".close-modal").forEach(span => {
     span.onclick = () => { 

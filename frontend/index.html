@@ -10,16 +10,54 @@
     <header>
         <h1>Quiniela Mundial 2026</h1>
         <p class="subtitle">Ingresa tus predicciones para la fase de grupos</p>
-    </header>
-
-    <main id="auth-section" class="card auth-container">
-        <div class="group-header">⚽ Bienvenido a la Quiniela</div>
-        <div class="auth-buttons">
-            <button id="show-login" class="btn-primary">Iniciar Sesión</button>
-            <button id="show-register" class="btn-secondary">Registrarse</button>
+        <div class="header-actions">
+            <div id="guest-actions">
+                <button id="show-login" class="btn-primary-mini">Iniciar Sesión</button>
+                <button id="show-register" class="btn-secondary-mini">Registrarse</button>
+            </div>
+            <button id="btn-jump-rules" class="btn-text">📜 Reglas</button>
         </div>
-        <p class="auth-hint">Regístrate para guardar tus predicciones y ver tu tabla de posiciones</p>
-    </main>
+    </header>
+    
+    <!-- Rules Section (Visible for both guest and logged-in) -->
+    <section id="rules-section" class="card rules-card" style="max-width: 1200px; margin: 0 auto 2rem; padding: 2rem;">
+        <div class="group-header" style="justify-content: flex-start;">📜 Reglas y Condiciones Generales</div>
+        <div class="rules-grid">
+            <div class="rules-item">
+                <div class="rule-title">💰 Costo y Premios</div>
+                <p>La Quiniela tiene un valor de: <strong>20.000 COP</strong> ó <strong>5 USD</strong>.</p>
+                <p class="rule-dist">Distribución: 20% Organización | 80% Ganador(es)</p>
+            </div>
+            <div class="rules-item">
+                <div class="rule-title">🎯 Sistema de Puntos</div>
+                <ul>
+                    <li><strong>3 Puntos</strong>: Resultado y marcador exacto.</li>
+                    <li><strong>1 Punto</strong>: Resultado correcto (ganador/empate) pero diferente marcador.</li>
+                    <li><strong>0 Puntos</strong>: Resultado incorrecto.</li>
+                </ul>
+            </div>
+            <div class="rules-item">
+                <div class="rule-title">⚖️ Criterio de Desempate</div>
+                <p>En caso de empate, ganará quien tenga más <strong>marcadores exactos (3 pts)</strong>. Si persiste, el premio se divide.</p>
+            </div>
+            <div class="rules-item">
+                <div class="rule-title">📅 Fecha Límite</div>
+                <p>Los resultados deben estar cargados antes del <strong>Jueves 11 de Junio de 2026</strong>.</p>
+                <p>Contacto: <a href="mailto:quiniela2026@gmail.com" style="color: var(--secondary-color);">quiniela2026@gmail.com</a></p>
+            </div>
+            <div class="rules-item full">
+                <div class="rule-title">⚙️ Condiciones de Uso</div>
+                <ul>
+                    <li>Solo se registrará el <strong>último envío</strong> realizado antes del bloqueo del sistema.</li>
+                    <li>Los marcadores deben ser números enteros entre <strong>0 y 20</strong>.</li>
+                    <li>Cualquier intento de manipulación resultará en la descalificación inmediata.</li>
+                    <li>Se creará un grupo de WhatsApp para mantener informados a todos los participantes.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Auth Section removed as requested and moved to header/modals -->
 
     <main id="main-content" style="display: none;">
         <section class="card user-panel">
@@ -30,7 +68,18 @@
                 </div>
                 <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
             </div>
-            <div id="read-only-badge" class="badge" style="display: none;">MODO LECTURA (Enviado)</div>
+            
+            <div id="status-banner" class="status-banner" style="display: none;">
+                <span class="status-icon">⚠️</span>
+                <span class="status-text">Tu cuenta está siendo revisada por el administrador. No podrás enviar o editar predicciones hasta que sea activada.</span>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+                <div id="account-status-badge" class="badge-status">Estado: ...</div>
+                <div id="read-only-badge" class="badge" style="display: none;">MODO LECTURA (Enviado)</div>
+                <div id="locked-badge" class="badge" style="display: none; background: var(--accent-color); color: #fff;">🔒 PREDICCIONES CERRADAS</div>
+                <button id="edit-btn" class="btn-secondary" style="display: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem;">✏️ Editar Predicciones</button>
+            </div>
         </section>
 
         <!-- Tabs for Groups -->
@@ -85,7 +134,79 @@
         </div>
     </div>
 
+    <div id="lock-modal" class="modal-overlay">
+        <div class="modal-content auth-modal" style="text-align: center;">
+            <span class="close-modal">&times;</span>
+            <div class="group-header" style="justify-content: center; color: var(--accent-color);">🚫 Acceso Cerrado</div>
+            <div style="margin: 2rem 0;">
+                <p style="font-size: 1.1rem; color: #fff; margin-bottom: 1rem;">Lo sentimos, las inscripciones y ediciones han sido bloqueadas.</p>
+                <p style="color: var(--text-muted);">El torneo ha comenzado y ya no se permiten más cambios en las predicciones.</p>
+            </div>
+            <button class="btn-primary full-width close-modal-btn">Entendido</button>
+        </div>
+    </div>
+
+    <!-- NEW: Rules Modal for Logged-in Users -->
+    <div id="rules-modal" class="modal-overlay">
+        <div class="modal-content rules-modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="group-header" style="justify-content: center; color: var(--secondary-color); font-size: 1.5rem;">📜 Reglas de la Quiniela</div>
+            <div class="rules-grid">
+                <div class="rules-item">
+                    <div class="rule-title">💰 Costo y Premios</div>
+                    <p>La Quiniela tiene un valor de: 20.000 COP ó 5 USD.</p>
+                    <p class="rule-dist">Distribución: 20% Organización | 80% Ganador(es)</p>
+                </div>
+                <div class="rules-item">
+                    <div class="rule-title">🎯 Sistema de Puntos</div>
+                    <ul>
+                        <li><strong>3 Puntos</strong>: Marcador exacto.</li>
+                        <li><strong>1 Punto</strong>: Resultado correcto.</li>
+                        <li><strong>0 Puntos</strong>: Fallido.</li>
+                    </ul>
+                </div>
+                <div class="rules-item">
+                    <div class="rule-title">⚖️ Criterio de Desempate</div>
+                    <p>Más marcadores exactos (3 pts) gana. Si persiste, se divide el premio.</p>
+                </div>
+                <div class="rules-item full">
+                    <div class="rule-title">⚙️ Condiciones Generales</div>
+                    <ul style="font-size: 0.85rem;">
+                        <li>Solo se registra el último envío antes del cierre.</li>
+                        <li>Marcadores permitidos: 0 a 20.</li>
+                        <li>Grupo de WhatsApp para comunicación oficial.</li>
+                        <li>Envío de resultados antes del 11 de Junio 2026.</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn-secondary close-rules-modal" style="padding: 0.8rem 2rem;">Cerrar Reglas</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/config.js"></script>
     <script src="js/script.js"></script>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">⚽ Quiniela 2026</div>
+            <div class="footer-info">
+                <div class="footer-section">
+                    <h4>Contacto de Administradores</h4>
+                    <p>📧 Email: <a href="mailto:quiniela2026@gmail.com">quinielaamundial2026@gmail.com</a></p>
+                    <p>📱 WhatsApp: <a href="https://wa.me/something" target="_blank">0424-7842726 / 0414-7243941</a></p>
+                </div>
+                <div class="footer-section">
+                    <h4>Información</h4>
+                    <p>Fecha Límite: 11 de Junio, 2026</p>
+                    <p>Organizado por: Administración Quiniela 2026</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 Quiniela Copa Mundial. Todos los derechos reservados.
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

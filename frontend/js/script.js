@@ -169,6 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentUser = null;
   let userToken = localStorage.getItem("quiniela_token");
+  let predictionsLocked = false;
 
   function generateMatches(userPredictions = null) {
     const groupsWrapper = document.getElementById("groups-wrapper");
@@ -218,9 +219,9 @@ document.addEventListener("DOMContentLoaded", () => {
             </td>
             <td class="td-score" data-label="Resultado">
               <div class="score-inputs-container">
-                <input type="number" class="score-input" data-team="${t1}" data-group="${group}" min="0" max="20" placeholder="0" value="${s1}" ${userPredictions ? 'disabled' : ''}>
+                <input type="number" class="score-input" data-team="${t1}" data-group="${group}" min="0" max="20" placeholder="0" value="${s1}" ${userPredictions ? 'readonly disabled' : ''}>
                 <span>-</span>
-                <input type="number" class="score-input" data-team="${t2}" data-group="${group}" min="0" max="20" placeholder="0" value="${s2}" ${userPredictions ? 'disabled' : ''}>
+                <input type="number" class="score-input" data-team="${t2}" data-group="${group}" min="0" max="20" placeholder="0" value="${s2}" ${userPredictions ? 'readonly disabled' : ''}>
               </div>
             </td>
             <td class="td-team right" data-label="Visitante">
@@ -351,13 +352,53 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("user-display-name").textContent = currentUser.name;
         document.getElementById("user-display-phone").textContent = `Tel: ${currentUser.phone}`;
         showSection("main");
+
+        // Set status badge and banner
+        const statusBadge = document.getElementById("account-status-badge");
+        const statusBanner = document.getElementById("status-banner");
+        if (currentUser.is_active) {
+          statusBadge.textContent = "Estado: Activo ✅";
+          statusBadge.classList.add("active");
+          statusBadge.classList.remove("inactive");
+          statusBanner.style.display = "none";
+        } else {
+          statusBadge.textContent = "Estado: En Revisión ⏳";
+          statusBadge.classList.add("inactive");
+          statusBadge.classList.remove("active");
+          statusBanner.style.display = "flex";
+        }
+
+        // Fetch settings (lock status)
+        try {
+          const settingsRes = await apiFetch("/api/settings");
+          const settings = await settingsRes.json();
+          predictionsLocked = settings.predictions_locked === "true";
+        } catch (err) {
+          console.error("Error loading settings:", err);
+        }
+
         if (data.predictions && data.predictions.length > 0) {
-          document.getElementById("read-only-badge").style.display = "inline-block";
+          if (predictionsLocked) {
+            document.getElementById("locked-badge").style.display = "inline-block";
+            document.getElementById("read-only-badge").style.display = "none";
+            document.getElementById("edit-btn").style.display = "none";
+          } else {
+            document.getElementById("locked-badge").style.display = "none";
+            document.getElementById("read-only-badge").style.display = "inline-block";
+            document.getElementById("edit-btn").style.display = "inline-block";
+          }
           document.getElementById("submit-section").style.display = "none";
           generateMatches(data.predictions);
         } else {
+          if (predictionsLocked) {
+             document.getElementById("locked-badge").style.display = "inline-block";
+             document.getElementById("submit-section").style.display = "none";
+          } else {
+             document.getElementById("locked-badge").style.display = "none";
+             document.getElementById("submit-section").style.display = "block";
+          }
           document.getElementById("read-only-badge").style.display = "none";
-          document.getElementById("submit-section").style.display = "block";
+          document.getElementById("edit-btn").style.display = "none";
           generateMatches();
         }
       } else {
@@ -370,7 +411,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function showSection(type) {
-    document.getElementById("auth-section").style.display = type === "auth" ? "block" : "none";
+    // We no longer have a static auth-section, we use modals.
+    // However, we show/hide the guest login buttons in the header.
+    const guestActions = document.getElementById("guest-actions");
+    if (guestActions) guestActions.style.display = type === "auth" ? "block" : "none";
+    
+    // Show static rules section only for guests
+    const rulesSection = document.getElementById("rules-section");
+    if (rulesSection) rulesSection.style.display = type === "auth" ? "block" : "none";
+
     document.getElementById("main-content").style.display = type === "main" ? "block" : "none";
   }
 
@@ -383,10 +432,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const loginModal = document.getElementById("login-modal");
   const regModal = document.getElementById("register-modal");
+  const rulesModal = document.getElementById("rules-modal");
+
   document.getElementById("show-login").onclick = () => loginModal.style.display = "flex";
   document.getElementById("show-register").onclick = () => regModal.style.display = "flex";
+  
+  document.getElementById("btn-jump-rules").onclick = () => {
+    if (userToken) {
+        // Logged in: show modal
+        rulesModal.style.display = "flex";
+    } else {
+        // Guest: scroll to static section
+        document.getElementById("rules-section").scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   document.querySelectorAll(".close-modal").forEach(span => {
-    span.onclick = () => { loginModal.style.display = "none"; regModal.style.display = "none"; };
+    span.onclick = () => { 
+        loginModal.style.display = "none"; 
+        regModal.style.display = "none"; 
+        rulesModal.style.display = "none";
+        document.getElementById("lock-modal").style.display = "none";
+    };
+  });
+
+  document.querySelectorAll(".close-modal-btn, .close-rules-modal").forEach(btn => {
+    btn.onclick = () => { 
+        document.getElementById("lock-modal").style.display = "none";
+        rulesModal.style.display = "none";
+    };
   });
 
   document.getElementById("login-submit").onclick = async () => {
@@ -438,6 +512,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("logout-btn").onclick = logout;
 
+  // Edit logic
+  document.getElementById("edit-btn").onclick = () => {
+    if (currentUser && !currentUser.is_active) {
+      showMessage("❌ Tu cuenta está en revisión. No puedes realizar cambios aún.", "error");
+      return;
+    }
+    
+    if (predictionsLocked) {
+        document.getElementById("lock-modal").style.display = "flex";
+        return;
+    }
+    const inputs = document.querySelectorAll(".score-input");
+    inputs.forEach(input => {
+        input.readOnly = false;
+        input.disabled = false;
+    });
+    document.getElementById("edit-btn").style.display = "none";
+    document.getElementById("read-only-badge").style.display = "none";
+    document.getElementById("submit-section").style.display = "block";
+    const submitBtn = document.querySelector("#submit-section button");
+    submitBtn.textContent = "Actualizar Quiniela";
+  };
+
   document.addEventListener("keydown", (e) => {
     if (e.target.classList.contains("score-input")) {
       if ([".", ",", "-", "+", "e"].includes(e.key)) e.preventDefault();
@@ -465,6 +562,18 @@ document.addEventListener("DOMContentLoaded", () => {
       showMessage("❌ Estás siendo revisado, espera hasta que activen tu cuenta", "error");
       return;
     }
+    
+    // Check lock one last time before submitting
+    try {
+      const settingsRes = await apiFetch("/api/settings");
+      const settings = await settingsRes.json();
+      if (settings.predictions_locked === "true") {
+        document.getElementById("lock-modal").style.display = "flex";
+        predictionsLocked = true;
+        return;
+      }
+    } catch (e) {}
+
     submitBtn.disabled = true;
     submitBtn.textContent = "Enviando...";
 

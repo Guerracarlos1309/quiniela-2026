@@ -70,7 +70,13 @@
               Resumen general de la plataforma
             </p>
           </div>
-          <div style="display: flex; gap: 10px">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <div id="lock-container" class="admin-lock-control">
+              <span id="lock-label" style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-right: 10px;">Sistema Abierto</span>
+              <button id="btn-toggle-lock" class="lock-toggle-btn" title="Bloquear/Desbloquear Predicciones">
+                <span class="lock-icon">🔓</span>
+              </button>
+            </div>
             <button id="btn-reset-results" class="admin-action-btn btn-danger">
               Borrar Resultados
             </button>
@@ -543,6 +549,7 @@
           renderResultInputs(officialResults);
           renderEntries(entries);
           loadLeaderboard();
+          loadSettings();
         } catch (err) {
           console.error("Error loading data:", err);
           if (err.message === "Unauthorized") {
@@ -560,6 +567,66 @@
           }
         }
       }
+
+      async function loadSettings() {
+        try {
+          const res = await apiFetch("/api/settings");
+          const settings = await res.json();
+          updateLockUI(settings.predictions_locked === "true");
+        } catch (err) {
+          console.error("Error loading settings:", err);
+        }
+      }
+
+      function updateLockUI(isLocked) {
+        const btn = document.getElementById("btn-toggle-lock");
+        const label = document.getElementById("lock-label");
+        const icon = btn.querySelector(".lock-icon");
+
+        if (isLocked) {
+          btn.classList.add("locked");
+          label.textContent = "Sistema Bloqueado";
+          label.style.color = "var(--accent-color)";
+          icon.textContent = "🔒";
+        } else {
+          btn.classList.remove("locked");
+          label.textContent = "Sistema Abierto";
+          label.style.color = "#2ecc71";
+          icon.textContent = "🔓";
+        }
+      }
+
+      document.getElementById("btn-toggle-lock").onclick = async () => {
+        const btn = document.getElementById("btn-toggle-lock");
+        const isCurrentlyLocked = btn.classList.contains("locked");
+        const newStatus = !isCurrentlyLocked;
+
+        const confirmMsg = newStatus 
+          ? "¿Estás seguro de BLOQUEAR las predicciones? Nadie podrá editar ni registrarse."
+          : "¿Deseas DESBLOQUEAR las predicciones? Los usuarios podrán editar sus resultados.";
+
+        const confirmed = await showConfirm("Control de Acceso", confirmMsg);
+        if (!confirmed) return;
+
+        try {
+          const res = await apiFetch("/api/admin/settings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: adminPass,
+            },
+            body: JSON.stringify({ key: "predictions_locked", value: newStatus }),
+          });
+          if (res.ok) {
+            updateLockUI(newStatus);
+            showAlert("Éxito", `Sistema ${newStatus ? "BLOQUEADO" : "DESBLOQUEADO"} correctamente`, "success");
+          } else {
+            showAlert("Error", "No se pudo actualizar el estado", "error");
+          }
+        } catch (err) {
+          showAlert("Error", "Error de conexión", "error");
+        }
+      };
 
       function updateStats(entries, results) {
         document.getElementById("stat-users").textContent = entries.length;

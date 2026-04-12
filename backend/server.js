@@ -137,6 +137,20 @@ async function ensureSchema() {
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
     `);
+
+  await pool.query(`
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+    `);
+
+  // Initialize settings
+  await pool.query(`
+        INSERT INTO settings (key, value)
+        VALUES ('predictions_locked', 'false')
+        ON CONFLICT (key) DO NOTHING;
+    `);
 }
 
 async function importLegacyJsonIfNeeded() {
@@ -199,6 +213,19 @@ app.get("/api/ping", (req, res) => {
   });
 });
 
+app.get("/api/settings", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT key, value FROM settings");
+    const settings = {};
+    result.rows.forEach((row) => {
+      settings[row.key] = row.value;
+    });
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener configuraciones" });
+  }
+});
+
 // API Endpoints
 app.post("/api/predict", async (req, res) => {
   const auth = req.headers.authorization;
@@ -214,6 +241,13 @@ app.post("/api/predict", async (req, res) => {
 
   const client = await pool.connect();
   try {
+    const lockRes = await client.query("SELECT value FROM settings WHERE key = 'predictions_locked'");
+    const isLocked = lockRes.rows[0]?.value === "true";
+
+    if (isLocked) {
+      return res.status(403).json({ error: "Las predicciones están cerradas debido al comienzo del torneo." });
+    }
+
     // Verificar usuario
     const userRes = await client.query(
       "SELECT id, password_hash, is_active FROM submissions WHERE phone = $1",
@@ -229,17 +263,10 @@ app.post("/api/predict", async (req, res) => {
       return res.status(403).json({ error: "Estás siendo revisado, espera hasta que activen tu cuenta" });
     }
 
-    // Verificar si ya tiene predicciones
-    const existing = await client.query(
-      "SELECT id FROM predictions WHERE submission_id = $1",
-      [user.id]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: "Ya has registrado tus predicciones" });
-    }
-
     await client.query("BEGIN");
+
+    // Borrar predicciones anteriores si existen (para permitir edición)
+    await client.query("DELETE FROM predictions WHERE submission_id = $1", [user.id]);
 
     for (const p of predictions) {
       await client.query(
@@ -378,6 +405,26 @@ app.post("/api/admin/login", async (req, res) => {
     res.json({ token: `${username}:${password}`, username });
   } catch (error) {
     res.status(500).json({ error: "Error en el servidor" });
+  }
+});
+
+app.post("/api/admin/settings", async (req, res) => {
+  if (!(await isAdminAuthorized(req)))
+    return res.status(401).json({ error: "No autorizado" });
+
+  const { key, value } = req.body;
+  if (!key || value === undefined) {
+    return res.status(400).json({ error: "Faltan datos" });
+  }
+
+  try {
+    await pool.query(
+      "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+      [key, String(value)]
+    );
+    res.json({ message: "Configuración actualizada" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al actualizar configuración" });
   }
 });
 

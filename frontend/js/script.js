@@ -529,6 +529,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const inputs = document.querySelectorAll(".score-input");
     inputs.forEach(input => {
+        input.removeAttribute("readonly");
+        input.removeAttribute("disabled");
         input.readOnly = false;
         input.disabled = false;
     });
@@ -581,17 +583,31 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.disabled = true;
     submitBtn.textContent = "Enviando...";
 
+    const rows = document.querySelectorAll(".match-row-tr");
     const predictions = [];
-    document.querySelectorAll(".match-row-tr").forEach((row) => {
+    
+    console.log(`[Submit] Found ${rows.length} matches to process.`);
+    
+    rows.forEach((row) => {
       const inputs = row.querySelectorAll(".score-input");
-      predictions.push({
-        matchId: row.dataset.match,
-        team1: inputs[0].dataset.team,
-        score1: inputs[0].value || "0",
-        team2: inputs[1].dataset.team,
-        score2: inputs[1].value || "0",
-      });
+      if (inputs.length >= 2) {
+          predictions.push({
+            matchId: row.dataset.match,
+            team1: inputs[0].dataset.team,
+            score1: inputs[0].value || "0",
+            team2: inputs[1].dataset.team,
+            score2: inputs[1].value || "0",
+          });
+      }
     });
+
+    if (predictions.length === 0) {
+        console.error("[Submit] No predictions collected!");
+        showMessage("❌ No se detectaron partidos para enviar. Por favor recarga la página.", "error");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Enviar Quiniela completa";
+        return;
+    }
 
     try {
       const res = await apiFetch("/api/predict", {

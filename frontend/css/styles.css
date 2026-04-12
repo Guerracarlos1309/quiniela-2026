@@ -205,6 +205,14 @@ input:focus {
     color: #fff;
 }
 
+.status-actions-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    align-items: center;
+    flex-wrap: wrap; /* Permite que el botón baje si no hay espacio */
+}
+
 .badge {
     background: var(--secondary-color);
     color: #000;
@@ -213,6 +221,7 @@ input:focus {
     font-weight: 800;
     font-size: 0.8rem;
     display: inline-block;
+    white-space: nowrap; /* Evita que el texto interno se rompa */
 }
 
 .full-width {
@@ -1264,6 +1273,14 @@ footer {
 
 @media (max-width: 600px) {
     .header-actions { flex-direction: column; gap: 1rem; }
+    .status-actions-container {
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    #edit-btn {
+        width: 100%; /* El botón de editar ocupa todo el ancho en móvil si baja */
+        margin-top: 5px;
+    }
 }
 
 /* Rules Modal Specifics */

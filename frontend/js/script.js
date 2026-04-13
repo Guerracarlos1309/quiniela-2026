@@ -421,6 +421,159 @@ document.addEventListener("DOMContentLoaded", () => {
     if (rulesSection) rulesSection.style.display = type === "auth" ? "block" : "none";
 
     document.getElementById("main-content").style.display = type === "main" ? "block" : "none";
+    if (type === "main") {
+      setupUserTabs();
+      startSystemPolling();
+    } else {
+      stopSystemPolling();
+    }
+  }
+
+  let leaderboardPollInterval = null;
+  let settingsPollInterval = null;
+
+  function setupUserTabs() {
+    const tabPreds = document.getElementById("tab-predictions");
+    const tabLeader = document.getElementById("tab-leaderboard");
+    const viewPreds = document.getElementById("predictions-view");
+    const viewLeader = document.getElementById("leaderboard-view");
+
+    if (!tabPreds || !tabLeader) return;
+
+    tabPreds.onclick = () => {
+      tabPreds.classList.add("active");
+      tabLeader.classList.remove("active");
+      viewPreds.style.display = "block";
+      viewLeader.style.display = "none";
+      stopLeaderboardPolling();
+    };
+
+    tabLeader.onclick = () => {
+      tabLeader.classList.add("active");
+      tabPreds.classList.remove("active");
+      viewPreds.style.display = "none";
+      viewLeader.style.display = "block";
+      fetchLeaderboard();
+      startLeaderboardPolling();
+    };
+  }
+
+  function startSystemPolling() {
+    // Poll settings every 30 seconds to update lock status
+    if (!settingsPollInterval) {
+      settingsPollInterval = setInterval(async () => {
+        try {
+          const res = await apiFetch("/api/settings");
+          if (res.ok) {
+            const settings = await res.json();
+            const locked = settings.predictions_locked === "true";
+            if (locked !== predictionsLocked) {
+              predictionsLocked = locked;
+              // If lock status changed, reload relevant parts of the UI
+              checkAuth(); // This will refresh UI based on new lock status
+            }
+          }
+        } catch (e) {}
+      }, 30000);
+    }
+  }
+
+  function stopSystemPolling() {
+    if (settingsPollInterval) {
+      clearInterval(settingsPollInterval);
+      settingsPollInterval = null;
+    }
+    stopLeaderboardPolling();
+  }
+
+  function startLeaderboardPolling() {
+    if (!leaderboardPollInterval) {
+      leaderboardPollInterval = setInterval(fetchLeaderboard, 60000);
+    }
+  }
+
+  function stopLeaderboardPolling() {
+    if (leaderboardPollInterval) {
+      clearInterval(leaderboardPollInterval);
+      leaderboardPollInterval = null;
+    }
+  }
+
+  async function fetchLeaderboard() {
+    const container = document.getElementById("leaderboard-container");
+    const loading = document.getElementById("leaderboard-loading");
+    const updateTimeEl = document.getElementById("leaderboard-updated-at");
+    
+    // Only show loading spinner on first load
+    if (container.innerHTML === "") {
+      container.style.display = "none";
+      loading.style.display = "block";
+    }
+
+    try {
+      const res = await apiFetch("/api/leaderboard");
+      if (res.ok) {
+        const data = await res.json();
+        renderLeaderboard(data);
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        updateTimeEl.textContent = `Actualizado: ${timeStr}`;
+        updateTimeEl.style.display = "block";
+        
+        loading.style.display = "none";
+        container.style.display = "block";
+      } else {
+        if (container.innerHTML === "") {
+           container.innerHTML = `<p class="msg error">Error al cargar la tabla</p>`;
+           container.style.display = "block";
+        }
+        loading.style.display = "none";
+      }
+    } catch (err) {
+      console.error(err);
+      loading.style.display = "none";
+    }
+  }
+
+  function renderLeaderboard(data) {
+    const container = document.getElementById("leaderboard-container");
+    
+    let html = `
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>Participante</th>
+            <th>Pts</th>
+            <th>Exacto (3)</th>
+            <th>Resultado (1)</th>
+            <th>Fallos (0)</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    data.forEach((row, index) => {
+      const isMe = currentUser && row.name === currentUser.name;
+      const rank = index + 1;
+
+      html += `
+        <tr class="${isMe ? 'row-is-me' : ''}">
+          <td class="std-team" data-label="Participante">
+            <span class="rank-id">#${rank}</span>
+            <span class="team-name">${row.name}</span>
+            ${isMe ? '<span class="badge-me">Tú</span>' : ''}
+          </td>
+          <td class="std-pts-val" data-label="Puntos Totales">${row.points}</td>
+          <td data-label="Aciertos Exactos">${row.exact_hits}</td>
+          <td data-label="Aciertos Resultado">${row.outcome_hits}</td>
+          <td data-label="Partidos Fallidos">${row.misses}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
   }
 
   function logout() {

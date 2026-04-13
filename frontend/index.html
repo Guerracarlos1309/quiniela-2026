@@ -153,20 +153,47 @@
           </button>
         </div>
       </section>
+      
+      <!-- User Module Navigation Tabs -->
+      <nav class="user-nav-tabs">
+        <button id="tab-predictions" class="user-nav-btn active">
+          Mis Predicciones
+        </button>
+        <button id="tab-leaderboard" class="user-nav-btn">
+          Tabla de Posiciones
+        </button>
+      </nav>
 
-      <!-- Tabs for Groups -->
-      <div id="groups-tabs" class="matchday-tabs"></div>
+      <!-- Section: Mis Predicciones -->
+      <div id="predictions-view">
+        <!-- Tabs for Groups -->
+        <div id="groups-tabs" class="matchday-tabs"></div>
 
-      <form id="quiniela-form">
-        <div id="groups-wrapper"></div>
+        <form id="quiniela-form">
+          <div id="groups-wrapper"></div>
 
-        <div id="submit-section" class="submit-container">
-          <button type="submit" class="btn-primary">
-            Enviar Quiniela completa
-          </button>
-          <div id="message-box"></div>
+          <div id="submit-section" class="submit-container">
+            <button type="submit" class="btn-primary">
+              Enviar Quiniela completa
+            </button>
+            <div id="message-box"></div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Section: Tabla de Posiciones -->
+      <div id="leaderboard-view" style="display: none;">
+        <div class="card leaderboard-card">
+          <div class="group-header">🏆 Clasificación General</div>
+          <div id="leaderboard-loading" class="loading-spinner">
+            Cargando tabla de posiciones...
+          </div>
+          <div id="leaderboard-updated-at" class="update-timestamp" style="display: none;"></div>
+          <div id="leaderboard-container" class="standings-container" style="display: none;">
+            <!-- Content will be injected here -->
+          </div>
         </div>
-      </form>
+      </div>
     </main>
 
     <!-- Modals -->

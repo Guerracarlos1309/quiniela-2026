@@ -586,6 +586,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginModal = document.getElementById("login-modal");
   const regModal = document.getElementById("register-modal");
   const rulesModal = document.getElementById("rules-modal");
+  const confirmModal = document.getElementById("confirm-submit-modal");
 
   document.getElementById("show-login").onclick = () => loginModal.style.display = "flex";
   document.getElementById("show-register").onclick = () => regModal.style.display = "flex";
@@ -609,6 +610,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loginModal.style.display = "none"; 
         regModal.style.display = "none"; 
         rulesModal.style.display = "none";
+        confirmModal.style.display = "none";
         document.getElementById("lock-modal").style.display = "none";
     };
   });
@@ -617,6 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.onclick = () => { 
         document.getElementById("lock-modal").style.display = "none";
         rulesModal.style.display = "none";
+        confirmModal.style.display = "none";
     };
   });
 
@@ -733,6 +736,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (e) {}
 
+    // NEW: Show confirmation modal instead of submitting immediately
+    confirmModal.style.display = "flex";
+  });
+
+  // NEW: Logic for the confirmation button in the modal
+  document.getElementById("confirm-submit-btn").onclick = async () => {
+    confirmModal.style.display = "none";
+    
     submitBtn.disabled = true;
     submitBtn.textContent = "Enviando...";
 
@@ -785,7 +796,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showMessage("❌ Error de conexión", "error");
       submitBtn.disabled = false;
     }
-  });
+  };
 
   function showMessage(msg, type) {
     messageBox.textContent = msg;

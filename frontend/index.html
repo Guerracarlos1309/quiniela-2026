@@ -216,7 +216,7 @@
         <div class="group-header">Iniciar Sesión</div>
         <div class="input-group">
           <label>Teléfono</label>
-          <input type="tel" id="login-phone" placeholder="Ej. 5512345678" />
+          <input type="tel" id="login-phone" placeholder="Ej. 04241234567" />
         </div>
         <div class="input-group">
           <label>Contraseña</label>
@@ -237,7 +237,7 @@
         </div>
         <div class="input-group">
           <label>Teléfono</label>
-          <input type="tel" id="reg-phone" placeholder="Ej. 5512345678" />
+          <input type="tel" id="reg-phone" placeholder="Ej. 04241234567" />
         </div>
         <div class="input-group">
           <label>Contraseña</label>
@@ -271,6 +271,42 @@
         <button class="btn-primary full-width close-modal-btn">
           Entendido
         </button>
+      </div>
+    </div>
+
+    <!-- NEW: Confirmation Modal before submitting -->
+    <div id="confirm-submit-modal" class="modal-overlay">
+      <div class="modal-content auth-modal" style="text-align: center">
+        <span class="close-modal">&times;</span>
+        <div
+          class="group-header"
+          style="justify-content: center; color: var(--secondary-color)"
+        >
+          Confirmar Envío
+        </div>
+        <div style="margin: 2rem 0">
+          <p style="font-size: 1.1rem; color: #fff; margin-bottom: 1rem">
+            ¿Estás seguro de enviar tus resultados?
+          </p>
+          <p style="color: var(--text-muted); font-size: 0.9rem">
+            Asegúrate de enviar todos tus resultados. Al momento que la quiniela
+            cierra la edición, no se podrán editar los resultados de la
+            quiniela.
+          </p>
+        </div>
+        <div
+          style="display: flex; gap: 1rem; flex-direction: column; width: 100%"
+        >
+          <button id="confirm-submit-btn" class="btn-primary full-width">
+            Sí, enviar resultados
+          </button>
+          <button
+            class="btn-secondary full-width close-modal-btn"
+            style="padding: 0.8rem"
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
 

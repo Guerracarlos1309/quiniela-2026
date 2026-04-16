@@ -825,6 +825,7 @@
                     <td data-label="ACCIONES" style="text-align: right;">
                         <button onclick="toggleUserStatus(${e.id})" class="admin-action-btn btn-view" style="padding: 0.5rem; margin-right: 5px;" title="${e.is_active ? "Desactivar" : "Activar"}">${e.is_active ? "🔒" : "🔓"}</button>
                         <button onclick="viewUserPredictions(${index})" class="admin-action-btn btn-view">Ver</button>
+                        <button onclick="window.open('https://wa.me/58' + '${e.phone}'.replace(/\D/g, '').replace(/^0/, '').replace(/^58/, ''), '_blank')" class="admin-action-btn btn-view" style="padding: 0.5rem; margin-left: 5px;" title="Escribir al WhatsApp">📱</button>
                         <button onclick="deleteEntry(${e.id})" class="admin-action-btn btn-danger" style="padding: 0.6rem; margin-left: 5px;">🗑️</button>
                     </td>
                 </tr>

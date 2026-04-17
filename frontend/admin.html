@@ -786,11 +786,18 @@
           if (res.ok) {
             btn.textContent = "✅";
             btn.style.background = "#2ecc71";
+            
+            // Actualizar caché local sin re-renderizar todo el HTML (evita borrar inputs pendientes)
+            allOfficialResults[mId] = { score1: s1, score2: s2 };
+            
             setTimeout(() => {
               btn.textContent = "Guardar";
               btn.style.background = "";
             }, 2000);
-            loadData();
+            
+            // Solo actualizar estadísticas y leaderboard, no los inputs de partidos
+            updateStats(allEntries, allOfficialResults);
+            loadLeaderboard();
           } else {
             const err = await res.json();
             showAlert(

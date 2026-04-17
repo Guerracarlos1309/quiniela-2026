@@ -278,7 +278,9 @@ app.post("/api/predict", authenticateToken, async (req, res) => {
       return res.status(403).json({ error: "Las predicciones están cerradas debido al comienzo del torneo." });
     }
 
-    if (!req.user.is_active) {
+    // Re-verificar estado de activación real en BD (por si cambió desde el login)
+    const userStatusRes = await client.query("SELECT is_active FROM submissions WHERE id = $1", [req.user.id]);
+    if (userStatusRes.rows.length === 0 || !userStatusRes.rows[0].is_active) {
       return res.status(403).json({ error: "Estás siendo revisado, espera hasta que activen tu cuenta" });
     }
 
@@ -333,7 +335,7 @@ app.post("/api/register", async (req, res) => {
     );
     const user = result.rows[0];
     const token = jwt.sign(
-      { id: user.id, phone: user.phone, role: "participant", is_active: user.is_active }, 
+      { id: user.id, phone: user.phone, role: "participant" }, 
       JWT_SECRET, 
       { expiresIn: "7d" }
     );
@@ -373,7 +375,7 @@ app.post("/api/login", async (req, res) => {
     if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
 
     const token = jwt.sign(
-      { id: user.id, phone: user.phone, role: "participant", is_active: user.is_active }, 
+      { id: user.id, phone: user.phone, role: "participant" }, 
       JWT_SECRET, 
       { expiresIn: "7d" }
     );

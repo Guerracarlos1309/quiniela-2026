@@ -758,9 +758,9 @@ document.addEventListener("DOMContentLoaded", () => {
           predictions.push({
             matchId: row.dataset.match,
             team1: inputs[0].dataset.team,
-            score1: inputs[0].value || "0",
+            score1: inputs[0].value.trim() === "" ? "0" : inputs[0].value,
             team2: inputs[1].dataset.team,
-            score2: inputs[1].value || "0",
+            score2: inputs[1].value.trim() === "" ? "0" : inputs[1].value,
           });
       }
     });

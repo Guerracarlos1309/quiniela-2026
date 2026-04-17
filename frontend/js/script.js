@@ -623,51 +623,83 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   });
 
-  document.getElementById("login-submit").onclick = async () => {
+  document.getElementById("login-btn").onclick = async () => {
     const phone = document.getElementById("login-phone").value;
-    const password = document.getElementById("login-pw").value;
-    const msg = document.getElementById("login-msg");
-    const res = await apiFetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, password })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem("quiniela_token", data.token);
-      location.reload();
-    } else {
-      msg.textContent = data.error;
-      msg.style.color = "red";
+    const pass = document.getElementById("login-pass").value;
+
+    if (!phone || !pass) {
+      showMessage("❌ Ingresa tus datos", "error");
+      return;
+    }
+
+    const btn = document.getElementById("login-btn");
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-mini"></span> Entrando...';
+
+    try {
+      const res = await apiFetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, password: pass }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("quiniela_token", data.token);
+        location.reload();
+      } else {
+        throw new Error(data.error || "Datos incorrectos");
+      }
+    } catch (err) {
+      showMessage(`❌ ${err.message}`, "error");
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     }
   };
 
-  document.getElementById("login-pw").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("login-submit").click();
+  document.getElementById("login-pass").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("login-btn").click();
   });
 
-  document.getElementById("register-submit").onclick = async () => {
+  document.getElementById("register-btn").onclick = async () => {
     const name = document.getElementById("reg-name").value;
     const phone = document.getElementById("reg-phone").value;
-    const password = document.getElementById("reg-pw").value;
-    const msg = document.getElementById("reg-msg");
-    const res = await apiFetch("/api/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, password })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem("quiniela_token", data.token);
-      location.reload();
-    } else {
-      msg.textContent = data.error;
-      msg.style.color = "red";
+    const pass = document.getElementById("reg-pass").value;
+
+    if (!name || !phone || !pass) {
+      showMessage("❌ Completa todos los campos", "error");
+      return;
+    }
+
+    const btn = document.getElementById("register-btn");
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-mini"></span> Registrando...';
+
+    try {
+      const res = await apiFetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, password: pass }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem("quiniela_token", data.token);
+        location.reload();
+      } else {
+        throw new Error(data.error || "Error al registrar");
+      }
+    } catch (err) {
+      showMessage(`❌ ${err.message}`, "error");
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     }
   };
 
-  document.getElementById("reg-pw").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("register-submit").click();
+  document.getElementById("reg-pass").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("register-btn").click();
   });
 
   document.getElementById("logout-btn").onclick = logout;

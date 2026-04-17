@@ -628,7 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const pass = document.getElementById("login-pw").value;
 
     if (!phone || !pass) {
-      showMessage("❌ Ingresa tus datos", "error");
+      showMessage("❌ Ingresa tus datos", "error", document.getElementById("login-msg"));
       return;
     }
 
@@ -652,7 +652,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(data.error || "Datos incorrectos");
       }
     } catch (err) {
-      showMessage(`❌ ${err.message}`, "error");
+      showMessage(`❌ ${err.message}`, "error", document.getElementById("login-msg"));
       btn.disabled = false;
       btn.innerHTML = originalText;
     }
@@ -668,7 +668,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const pass = document.getElementById("reg-pw").value;
 
     if (!name || !phone || !pass) {
-      showMessage("❌ Completa todos los campos", "error");
+      showMessage("❌ Completa todos los campos", "error", document.getElementById("reg-msg"));
       return;
     }
 
@@ -692,7 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(data.error || "Error al registrar");
       }
     } catch (err) {
-      showMessage(`❌ ${err.message}`, "error");
+      showMessage(`❌ ${err.message}`, "error", document.getElementById("reg-msg"));
       btn.disabled = false;
       btn.innerHTML = originalText;
     }
@@ -830,11 +830,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  function showMessage(msg, type) {
-    messageBox.textContent = msg;
-    messageBox.className = type;
-    messageBox.style.display = "block";
-    setTimeout(() => (messageBox.style.display = "none"), 4000);
+  function showMessage(msg, type, target = null) {
+    const box = target || messageBox;
+    if (!box) return;
+    box.textContent = msg;
+    box.className = box.id === "message-box" ? type : `msg ${type}`;
+    box.style.display = "block";
+    setTimeout(() => { if (box) box.style.display = "none"; }, 4000);
   }
 
   checkAuth();

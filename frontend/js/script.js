@@ -623,16 +623,16 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   });
 
-  document.getElementById("login-btn").onclick = async () => {
+  document.getElementById("login-submit").onclick = async () => {
     const phone = document.getElementById("login-phone").value;
-    const pass = document.getElementById("login-pass").value;
+    const pass = document.getElementById("login-pw").value;
 
     if (!phone || !pass) {
       showMessage("❌ Ingresa tus datos", "error");
       return;
     }
 
-    const btn = document.getElementById("login-btn");
+    const btn = document.getElementById("login-submit");
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-mini"></span> Entrando...';
@@ -658,21 +658,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  document.getElementById("login-pass").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("login-btn").click();
+  document.getElementById("login-pw").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("login-submit").click();
   });
 
-  document.getElementById("register-btn").onclick = async () => {
+  document.getElementById("register-submit").onclick = async () => {
     const name = document.getElementById("reg-name").value;
     const phone = document.getElementById("reg-phone").value;
-    const pass = document.getElementById("reg-pass").value;
+    const pass = document.getElementById("reg-pw").value;
 
     if (!name || !phone || !pass) {
       showMessage("❌ Completa todos los campos", "error");
       return;
     }
 
-    const btn = document.getElementById("register-btn");
+    const btn = document.getElementById("register-submit");
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-mini"></span> Registrando...';
@@ -698,8 +698,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  document.getElementById("reg-pass").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("register-btn").click();
+  document.getElementById("reg-pw").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("register-submit").click();
   });
 
   document.getElementById("logout-btn").onclick = logout;

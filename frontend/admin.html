@@ -545,16 +545,12 @@
               body: JSON.stringify({ username: user, password: pass }),
             });
 
-            if (!res.ok) {
-              const err = await res.json();
-              throw new Error(err.error || "Login failed");
-            }
-
-            adminPass = `${user}:${pass}`;
+            const data = await res.json();
+            adminPass = data.token;
             localStorage.setItem("adminToken", adminPass);
             loadData();
           } catch (err) {
-            alert("Error: " + err.message);
+            showAlert("Error", err.message, "error");
           }
         });
 

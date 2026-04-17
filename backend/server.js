@@ -4,11 +4,15 @@ const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
 try {
   require("dotenv").config();
 } catch (_error) {
   // dotenv is optional in cloud environments where env vars are injected.
 }
+
+const JWT_SECRET = process.env.JWT_SECRET || "quiniela_secret_2026_default";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,51 +40,83 @@ app.use(
 app.use(express.json());
 // app.use(express.static('public')); // Deshabilitado: El frontend es independiente.
 
-// Log temporal para diagnosticar el 404 en borrado
-app.use((req, res, next) => {
-  console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
-  next();
-});
+// Cache memory for leaderboard
+let leaderboardCache = {
+  data: null,
+  timestamp: 0,
+};
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-async function isAdminAuthorized(req) {
-  const auth = req.headers.authorization;
-  if (!auth) {
-    console.log("--- Auth Failure: No Auth Header ---");
-    return false;
-  }
+function clearLeaderboardCache() {
+  leaderboardCache.data = null;
+}
 
-  // Soporte para contraseña maestra (legacy)
-  if (auth === ADMIN_PASSWORD) return true;
+// Authentication Middlewares
+async function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader; // Currently frontend sends it direct
 
-  // Soporte para "usuario:password"
-  if (auth.includes(":")) {
-    const [username, password] = auth.split(":");
+  if (!token) return res.status(401).json({ error: "No autorizado" });
+
+  // Support for legacy "phone:password" to avoid breaking things immediately
+  if (token.includes(":")) {
+    const [phone, password] = token.split(":");
+    const cleanPhone = String(phone).replace(/\D/g, "");
     try {
       const result = await pool.query(
-        "SELECT password_hash FROM users WHERE username = $1",
-        [username],
+        "SELECT id, name, phone, password_hash, is_active FROM submissions WHERE phone = $1",
+        [cleanPhone]
       );
-      if (result.rows.length === 0) {
-        console.log(`--- Auth Failure: User "${username}" not found ---`);
-        return false;
-      }
-      const match = await bcrypt.compare(
-        password,
-        result.rows[0].password_hash,
-      );
-      if (!match)
-        console.log(
-          `--- Auth Failure: Incorrect password for "${username}" ---`,
-        );
-      return match;
+      if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
+      const user = result.rows[0];
+      const match = await bcrypt.compare(password, user.password_hash);
+      if (!match) return res.status(401).json({ error: "Credenciales inválidas" });
+      req.user = { id: user.id, phone: user.phone, role: "participant", is_active: user.is_active };
+      return next();
     } catch (err) {
-      console.error("Auth error:", err);
-      return false;
+      return res.status(500).json({ error: "Error de auth" });
     }
   }
 
-  console.log('--- Auth Failure: Invalid format (missing ":") ---');
-  return false;
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ error: "Token inválido o expirado" });
+    req.user = user;
+    next();
+  });
+}
+
+async function authenticateAdmin(req, res, next) {
+  const token = req.headers["authorization"];
+  if (!token) return res.status(401).json({ error: "No autorizado" });
+
+  // Legacy support for admin
+  if (token === ADMIN_PASSWORD) {
+    req.user = { role: "admin" };
+    return next();
+  }
+
+  if (token.includes(":")) {
+    const [username, password] = token.split(":");
+    try {
+      const result = await pool.query(
+        "SELECT password_hash FROM users WHERE username = $1",
+        [username]
+      );
+      if (result.rows.length > 0) {
+        const match = await bcrypt.compare(password, result.rows[0].password_hash);
+        if (match) {
+          req.user = { username, role: "admin" };
+          return next();
+        }
+      }
+    } catch (err) {}
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err || user.role !== "admin") return res.status(403).json({ error: "No autorizado" });
+    req.user = user;
+    next();
+  });
 }
 
 async function ensureSchema() {
@@ -227,13 +263,7 @@ app.get("/api/settings", async (req, res) => {
 });
 
 // API Endpoints
-app.post("/api/predict", async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.includes(":")) return res.status(401).json({ error: "No autorizado" });
-
-  const [phone, password] = auth.split(":");
-  const cleanPhone = String(phone).replace(/\D/g, "");
-
+app.post("/api/predict", authenticateToken, async (req, res) => {
   const { predictions } = req.body;
   if (!Array.isArray(predictions) || predictions.length === 0) {
     return res.status(400).json({ error: "Faltan predicciones" });
@@ -248,40 +278,33 @@ app.post("/api/predict", async (req, res) => {
       return res.status(403).json({ error: "Las predicciones están cerradas debido al comienzo del torneo." });
     }
 
-    // Verificar usuario
-    const userRes = await client.query(
-      "SELECT id, password_hash, is_active FROM submissions WHERE phone = $1",
-      [cleanPhone]
-    );
-
-    if (userRes.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
-    const user = userRes.rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return res.status(401).json({ error: "Token inválido" });
-
-    if (!user.is_active) {
+    if (!req.user.is_active) {
       return res.status(403).json({ error: "Estás siendo revisado, espera hasta que activen tu cuenta" });
     }
 
     await client.query("BEGIN");
 
-    // Borrar predicciones anteriores si existen (para permitir edición)
-    await client.query("DELETE FROM predictions WHERE submission_id = $1", [user.id]);
+    // Borrar predicciones anteriores si existen
+    await client.query("DELETE FROM predictions WHERE submission_id = $1", [req.user.id]);
 
-    for (const p of predictions) {
-      await client.query(
-        `INSERT INTO predictions (submission_id, match_id, team1, score1, team2, score2)
-                 VALUES ($1, $2, $3, $4, $5, $6);`,
-        [
-          user.id,
-          p.matchId,
-          p.team1,
-          parseInt(p.score1, 10),
-          p.team2,
-          parseInt(p.score2, 10),
-        ]
-      );
+    // OPTIMIZATION: BATCH INSERT
+    if (predictions.length > 0) {
+      const values = [];
+      const params = [req.user.id];
+      let placeholderIdx = 2;
+      
+      const insertQuery = `
+        INSERT INTO predictions (submission_id, match_id, team1, score1, team2, score2)
+        VALUES ${predictions.map(p => {
+          const start = placeholderIdx;
+          placeholderIdx += 5;
+          values.push(p.matchId, p.team1, parseInt(p.score1, 10), p.team2, parseInt(p.score2, 10));
+          return `($1, $${start}, $${start+1}, $${start+2}, $${start+3}, $${start+4})`;
+        }).join(", ")}
+      `;
+      await client.query(insertQuery, params.concat(values));
     }
+
     await client.query("COMMIT");
     res.status(201).json({ message: "Predicciones guardadas con éxito" });
   } catch (error) {
@@ -308,10 +331,17 @@ app.post("/api/register", async (req, res) => {
       "INSERT INTO submissions (name, phone, password_hash) VALUES ($1, $2, $3) RETURNING id, name, phone, is_active",
       [name, cleanPhone, hash]
     );
+    const user = result.rows[0];
+    const token = jwt.sign(
+      { id: user.id, phone: user.phone, role: "participant", is_active: user.is_active }, 
+      JWT_SECRET, 
+      { expiresIn: "7d" }
+    );
+
     res.status(201).json({ 
       message: "Registro exitoso", 
-      user: result.rows[0],
-      token: `${cleanPhone}:${password}`
+      user,
+      token
     });
   } catch (err) {
     if (err.code === "23505") {
@@ -342,34 +372,31 @@ app.post("/api/login", async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
 
+    const token = jwt.sign(
+      { id: user.id, phone: user.phone, role: "participant", is_active: user.is_active }, 
+      JWT_SECRET, 
+      { expiresIn: "7d" }
+    );
+
     res.json({ 
       message: "Login exitoso", 
       user: { id: user.id, name: user.name, phone: user.phone, is_active: user.is_active },
-      token: `${cleanPhone}:${password}`
+      token
     });
   } catch (error) {
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
 
-app.get("/api/user/me", async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.includes(":")) return res.status(401).json({ error: "No autorizado" });
-
-  const [phone, password] = auth.split(":");
-  const cleanPhone = String(phone).replace(/\D/g, "");
-
+app.get("/api/user/me", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, phone, password_hash, is_active FROM submissions WHERE phone = $1",
-      [cleanPhone]
+      "SELECT id, name, phone, is_active FROM submissions WHERE id = $1",
+      [req.user.id]
     );
 
     if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
-
     const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return res.status(401).json({ error: "Token inválido" });
 
     // Buscar si ya tiene predicciones
     const predictionsRes = await pool.query(
@@ -402,15 +429,19 @@ app.post("/api/admin/login", async (req, res) => {
     const match = await bcrypt.compare(password, result.rows[0].password_hash);
     if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
 
-    res.json({ token: `${username}:${password}`, username });
+    const token = jwt.sign(
+      { username, role: "admin" }, 
+      JWT_SECRET, 
+      { expiresIn: "24h" }
+    );
+
+    res.json({ token, username });
   } catch (error) {
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
 
-app.post("/api/admin/settings", async (req, res) => {
-  if (!(await isAdminAuthorized(req)))
-    return res.status(401).json({ error: "No autorizado" });
+app.post("/api/admin/settings", authenticateAdmin, async (req, res) => {
 
   const { key, value } = req.body;
   if (!key || value === undefined) {
@@ -428,9 +459,7 @@ app.post("/api/admin/settings", async (req, res) => {
   }
 });
 
-app.post("/api/admin/set-result", async (req, res) => {
-  if (!(await isAdminAuthorized(req)))
-    return res.status(401).json({ error: "No autorizado" });
+app.post("/api/admin/set-result", authenticateAdmin, async (req, res) => {
   const { matchId, score1, score2 } = req.body;
   if (!matchId || score1 === undefined || score2 === undefined) {
     return res.status(400).json({ error: "Faltan datos obligatorios" });
@@ -451,6 +480,12 @@ app.post("/api/admin/set-result", async (req, res) => {
 });
 
 app.get("/api/leaderboard", async (req, res) => {
+  // Check cache
+  const now = Date.now();
+  if (leaderboardCache.data && (now - leaderboardCache.timestamp < CACHE_DURATION)) {
+    return res.json(leaderboardCache.data);
+  }
+
   try {
     const leaderboardQuery = `
             SELECT
@@ -526,15 +561,20 @@ app.get("/api/leaderboard", async (req, res) => {
           (Number(r.outcome_hits) || 0),
       ),
     }));
+    
+    // Update cache
+    leaderboardCache = {
+      data: enriched,
+      timestamp: Date.now()
+    };
+    
     res.json(enriched);
   } catch (error) {
     res.status(500).json({ error: "Error al calcular tabla" });
   }
 });
 
-app.get("/api/admin/entries", async (req, res) => {
-  if (!(await isAdminAuthorized(req)))
-    return res.status(401).json({ error: "No autorizado" });
+app.get("/api/admin/entries", authenticateAdmin, async (req, res) => {
 
   try {
     const entriesQuery = `
@@ -617,14 +657,9 @@ app.get("/api/admin/entries", async (req, res) => {
   }
 });
 
-app.delete("/api/admin/submissions/:id", async (req, res) => {
+app.delete("/api/admin/submissions/:id", authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   console.log(`Intentando borrar participante con ID: ${id}`);
-
-  if (!(await isAdminAuthorized(req))) {
-    console.log(`Intento de borrado NO AUTORIZADO para ID: ${id}`);
-    return res.status(401).json({ error: "No autorizado" });
-  }
 
   try {
     const result = await pool.query("DELETE FROM submissions WHERE id = $1", [
@@ -644,10 +679,8 @@ app.delete("/api/admin/submissions/:id", async (req, res) => {
   }
 });
 
-app.post("/api/admin/submissions/:id/toggle-active", async (req, res) => {
+app.post("/api/admin/submissions/:id/toggle-active", authenticateAdmin, async (req, res) => {
   const { id } = req.params;
-  if (!(await isAdminAuthorized(req)))
-    return res.status(401).json({ error: "No autorizado" });
 
   try {
     const result = await pool.query(
@@ -661,9 +694,8 @@ app.post("/api/admin/submissions/:id/toggle-active", async (req, res) => {
   }
 });
 
-app.post("/api/admin/reset-results", async (req, res) => {
-  if (!(await isAdminAuthorized(req)))
-    return res.status(401).json({ error: "No autorizado" });
+app.post("/api/admin/reset-results", authenticateAdmin, async (req, res) => {
+  clearLeaderboardCache();
   try {
     await pool.query("DELETE FROM official_results;");
     res.json({ message: "Resultados oficiales restablecidos" });
@@ -672,9 +704,8 @@ app.post("/api/admin/reset-results", async (req, res) => {
   }
 });
 
-app.post("/api/admin/reset-all", async (req, res) => {
-  if (!(await isAdminAuthorized(req)))
-    return res.status(401).json({ error: "No autorizado" });
+app.post("/api/admin/reset-all", authenticateAdmin, async (req, res) => {
+  clearLeaderboardCache();
   try {
     await pool.query("DELETE FROM official_results;");
     await pool.query("DELETE FROM predictions;");

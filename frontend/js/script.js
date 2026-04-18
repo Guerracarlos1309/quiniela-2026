@@ -70,100 +70,100 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const matchesByGroup = {
     "A": [
-      ["11/06 3:00pm", "MÉXICO", "SUDÁFRICA"],
-      ["11/06 10:00pm", "COREA DEL SUR", "REPÚBLICA CHECA"],
-      ["18/06 9:00pm", "MÉXICO", "COREA DEL SUR"],
-      ["18/06 12:00pm", "REPÚBLICA CHECA", "SUDÁFRICA"],
-      ["24/06 9:00pm", "REPÚBLICA CHECA", "MÉXICO"],
-      ["24/06 9:00pm", "SUDÁFRICA", "COREA DEL SUR"]
+      ["11/06 15:00", "MÉXICO", "SUDÁFRICA", "Estadio Ciudad de México"],
+      ["11/06 22:00", "COREA DEL SUR", "REPÚBLICA CHECA", "Estadio Guadalajara"],
+      ["18/06 21:00", "MÉXICO", "COREA DEL SUR", "Estadio Guadalajara"],
+      ["18/06 12:00", "REPÚBLICA CHECA", "SUDÁFRICA", "Estadio Atlanta"],
+      ["24/06 21:00", "REPÚBLICA CHECA", "MÉXICO", "Estadio Ciudad de México"],
+      ["24/06 21:00", "SUDÁFRICA", "COREA DEL SUR", "Estadio Monterrey"]
     ],
     "B": [
-      ["12/06 3:00pm", "CANADÁ", "BOSNIA HERZEGOVINA"],
-      ["13/06 3:00pm", "CATAR", "SUIZA"],
-      ["18/06 3:00pm", "SUIZA", "BOSNIA HERZEGOVINA"],
-      ["18/06 6:00pm", "CANADÁ", "CATAR"],
-      ["24/06 3:00pm", "BOSNIA HERZEGOVINA", "CATAR"],
-      ["24/06 3:00pm", "SUIZA", "CANADÁ"]
+      ["12/06 15:00", "CANADÁ", "BOSNIA HERZEGOVINA", "Estadio Toronto"],
+      ["13/06 15:00", "CATAR", "SUIZA", "Estadio Bahía de San Francisco"],
+      ["18/06 15:00", "SUIZA", "BOSNIA HERZEGOVINA", "Estadio Los Ángeles"],
+      ["18/06 18:00", "CANADÁ", "CATAR", "Estadio BC Place Vancouver"],
+      ["24/06 15:00", "BOSNIA HERZEGOVINA", "CATAR", "Estadio Seattle"],
+      ["24/06 15:00", "SUIZA", "CANADÁ", "Estadio BC Place Vancouver"]
     ],
     "C": [
-      ["13/06 6:00pm", "BRASIL", "MARRUECOS"],
-      ["13/06 9:00pm", "HAITÍ", "ESCOCIA"],
-      ["19/06 6:00pm", "ESCOCIA", "MARRUECOS"],
-      ["19/06 8:30pm", "BRASIL", "HAITÍ"],
-      ["24/06 6:00pm", "ESCOCIA", "BRASIL"],
-      ["24/06 6:00pm", "MARRUECOS", "HAITÍ"]
+      ["13/06 18:00", "BRASIL", "MARRUECOS", "Estadio Nueva York Nueva Jersey"],
+      ["13/06 21:00", "HAITÍ", "ESCOCIA", "Estadio Boston"],
+      ["19/06 18:00", "ESCOCIA", "MARRUECOS", "Estadio Boston"],
+      ["19/06 21:00", "BRASIL", "HAITÍ", "Estadio Filadelfia"],
+      ["24/06 18:00", "ESCOCIA", "BRASIL", "Estadio Miami"],
+      ["24/06 18:00", "MARRUECOS", "HAITÍ", "Estadio Atlanta"]
     ],
     "D": [
-      ["12/06 9:00pm", "E.E.U.U.", "PARAGUAY"],
-      ["14/06 12:00am", "AUSTRALIA", "TURQUÍA"],
-      ["19/06 3:00pm", "E.E.U.U.", "AUSTRALIA"],
-      ["19/06 11:00pm", "TURQUÍA", "PARAGUAY"],
-      ["25/06 10:00pm", "PARAGUAY", "AUSTRALIA"],
-      ["25/06 10:00pm", "TURQUÍA", "E.E.U.U."]
+      ["12/06 21:00", "E.E.U.U.", "PARAGUAY", "Estadio Los Ángeles"],
+      ["14/06 00:00", "AUSTRALIA", "TURQUÍA", "Estadio BC Place Vancouver"],
+      ["19/06 15:00", "E.E.U.U.", "AUSTRALIA", "Estadio Seattle"],
+      ["19/06 00:00", "TURQUÍA", "PARAGUAY", "Estadio Bahía de San Francisco"],
+      ["25/06 22:00", "PARAGUAY", "AUSTRALIA", "Estadio Bahía de San Francisco"],
+      ["25/06 22:00", "TURQUÍA", "E.E.U.U.", "Estadio Los Ángeles"]
     ],
     "E": [
-      ["14/06 1:00pm", "ALEMANIA", "CURAZAO"],
-      ["14/06 7:00pm", "COSTA DE MARFIL", "ECUADOR"],
-      ["20/06 4:00pm", "ALEMANIA", "COSTA DE MARFIL"],
-      ["20/06 8:00pm", "ECUADOR", "CURAZAO"],
-      ["25/06 4:00pm", "CURAZAO", "COSTA DE MARFIL"],
-      ["25/06 4:00pm", "ECUADOR", "ALEMANIA"]
+      ["14/06 13:00", "ALEMANIA", "CURAZAO", "Estadio Houston"],
+      ["14/06 19:00", "COSTA DE MARFIL", "ECUADOR", "Estadio Filadelfia"],
+      ["20/06 16:00", "ALEMANIA", "COSTA DE MARFIL", "Estadio Toronto"],
+      ["20/06 22:00", "ECUADOR", "CURAZAO", "Estadio Kansas City"],
+      ["25/06 16:00", "CURAZAO", "COSTA DE MARFIL", "Estadio Filadelfia"],
+      ["25/06 16:00", "ECUADOR", "ALEMANIA", "Estadio Nueva York Nueva Jersey"]
     ],
     "F": [
-      ["14/06 4:00pm", "PAÍSES BAJOS", "JAPÓN"],
-      ["14/06 10:00pm", "SUECIA", "TÚNEZ"],
-      ["20/06 1:00pm", "PAÍSES BAJOS", "SUECIA"],
-      ["21/06 12:00am", "TÚNEZ", "JAPÓN"],
-      ["25/06 7:00pm", "JAPÓN", "SUECIA"],
-      ["25/06 7:00pm", "TÚNEZ", "PAÍSES BAJOS"]
+      ["14/06 16:00", "PAÍSES BAJOS", "JAPÓN", "Estadio Dallas"],
+      ["14/06 22:00", "SUECIA", "TÚNEZ", "Estadio Monterrey"],
+      ["20/06 13:00", "PAÍSES BAJOS", "SUECIA", "Estadio Houston"],
+      ["20/06 00:00", "TÚNEZ", "JAPÓN", "Estadio Monterrey"],
+      ["25/06 19:00", "JAPÓN", "SUECIA", "Estadio Dallas"],
+      ["25/06 19:00", "TÚNEZ", "PAÍSES BAJOS", "Estadio Kansas City"]
     ],
     "G": [
-      ["15/06 3:00pm", "BÉLGICA", "EGIPTO"],
-      ["15/06 9:00pm", "IRÁN", "NUEVA ZELANDA"],
-      ["21/06 3:00pm", "BÉLGICA", "IRÁN"],
-      ["21/06 9:00pm", "NUEVA ZELANDA", "EGIPTO"],
-      ["26/06 11:00pm", "EGIPTO", "IRÁN"],
-      ["26/06 11:00pm", "NUEVA ZELANDA", "BÉLGICA"]
+      ["15/06 15:00", "BÉLGICA", "EGIPTO", "Estadio Seattle"],
+      ["15/06 21:00", "IRÁN", "NUEVA ZELANDA", "Estadio Los Ángeles"],
+      ["21/06 15:00", "BÉLGICA", "IRÁN", "Estadio Los Ángeles"],
+      ["21/06 21:00", "NUEVA ZELANDA", "EGIPTO", "Estadio BC Place Vancouver"],
+      ["26/06 23:00", "EGIPTO", "IRÁN", "Estadio Seattle"],
+      ["26/06 23:00", "NUEVA ZELANDA", "BÉLGICA", "Estadio BC Place Vancouver"]
     ],
     "H": [
-      ["15/06 12:00pm", "ESPAÑA", "CABO VERDE"],
-      ["15/06 6:00pm", "ARABIA SAUDÍ", "URUGUAY"],
-      ["21/06 12:00pm", "ESPAÑA", "ARABIA SAUDÍ"],
-      ["21/06 6:00pm", "URUGUAY", "CABO VERDE"],
-      ["26/06 8:00pm", "CABO VERDE", "ARABIA SAUDÍ"],
-      ["26/06 8:00pm", "URUGUAY", "ESPAÑA"]
+      ["15/06 12:00", "ESPAÑA", "CABO VERDE", "Estadio Atlanta"],
+      ["15/06 18:00", "ARABIA SAUDÍ", "URUGUAY", "Estadio Miami"],
+      ["21/06 12:00", "ESPAÑA", "ARABIA SAUDÍ", "Estadio Atlanta"],
+      ["21/06 18:00", "URUGUAY", "CABO VERDE", "Estadio Miami"],
+      ["26/06 20:00", "CABO VERDE", "ARABIA SAUDÍ", "Estadio Houston"],
+      ["26/06 20:00", "URUGUAY", "ESPAÑA", "Estadio Guadalajara"]
     ],
     "I": [
-      ["16/06 3:00pm", "FRANCIA", "SENEGAL"],
-      ["16/06 6:00pm", "IRAK", "NORUEGA"],
-      ["22/06 5:00pm", "FRANCIA", "IRAK"],
-      ["22/06 8:00pm", "NORUEGA", "SENEGAL"],
-      ["26/06 3:00pm", "NORUEGA", "FRANCIA"],
-      ["26/06 3:00pm", "SENEGAL", "IRAK"]
+      ["16/06 15:00", "FRANCIA", "SENEGAL", "Estadio Nueva York Nueva Jersey"],
+      ["16/06 18:00", "IRAK", "NORUEGA", "Estadio Boston"],
+      ["22/06 17:00", "FRANCIA", "IRAK", "Estadio Filadelfia"],
+      ["22/06 20:00", "NORUEGA", "SENEGAL", "Estadio Nueva York Nueva Jersey"],
+      ["26/06 15:00", "NORUEGA", "FRANCIA", "Estadio Boston"],
+      ["26/06 15:00", "SENEGAL", "IRAK", "Estadio Toronto"]
     ],
     "J": [
-      ["16/06 9:00pm", "ARGENTINA", "ARGELIA"],
-      ["17/06 12:00am", "AUSTRIA", "JORDANIA"],
-      ["22/06 1:00pm", "ARGENTINA", "AUSTRIA"],
-      ["22/06 11:00pm", "JORDANIA", "ARGELIA"],
-      ["27/06 10:00pm", "ARGELIA", "AUSTRIA"],
-      ["27/06 10:00pm", "JORDANIA", "ARGENTINA"]
+      ["16/06 21:00", "ARGENTINA", "ARGELIA", "Estadio Kansas City"],
+      ["16/06 00:00", "AUSTRIA", "JORDANIA", "Estadio Bahía de San Francisco"],
+      ["22/06 13:00", "ARGENTINA", "AUSTRIA", "Estadio Dallas"],
+      ["22/06 23:00", "JORDANIA", "ARGELIA", "Estadio Bahía de San Francisco"],
+      ["27/06 22:00", "ARGELIA", "AUSTRIA", "Estadio Kansas City"],
+      ["27/06 22:00", "JORDANIA", "ARGENTINA", "Estadio Dallas"]
     ],
     "K": [
-      ["17/06 1:00pm", "PORTUGAL", "RD CONGO"],
-      ["17/06 10:00pm", "UZBEKISTÁN", "COLOMBIA"],
-      ["23/06 1:00pm", "PORTUGAL", "UZBEKISTÁN"],
-      ["23/06 10:00pm", "COLOMBIA", "RD CONGO"],
-      ["27/06 7:30pm", "COLOMBIA", "PORTUGAL"],
-      ["27/06 7:30pm", "RD CONGO", "UZBEKISTÁN"]
+      ["17/06 13:00", "PORTUGAL", "RD CONGO", "Estadio Houston"],
+      ["17/06 22:00", "UZBEKISTÁN", "COLOMBIA", "Estadio Ciudad de México"],
+      ["23/06 13:00", "PORTUGAL", "UZBEKISTÁN", "Estadio Houston"],
+      ["23/06 22:00", "COLOMBIA", "RD CONGO", "Estadio Guadalajara"],
+      ["27/06 19:30", "COLOMBIA", "PORTUGAL", "Estadio Miami"],
+      ["27/06 19:30", "RD CONGO", "UZBEKISTÁN", "Estadio Atlanta"]
     ],
     "L": [
-      ["17/06 4:00pm", "INGLATERRA", "CROACIA"],
-      ["17/06 7:00pm", "GHANA", "PANAMÁ"],
-      ["23/06 4:00pm", "INGLATERRA", "GHANA"],
-      ["23/06 7:00pm", "PANAMÁ", "CROACIA"],
-      ["27/06 5:00pm", "CROACIA", "GHANA"],
-      ["27/06 5:00pm", "PANAMÁ", "INGLATERRA"]
+      ["17/06 16:00", "INGLATERRA", "CROACIA", "Estadio Dallas"],
+      ["17/06 19:00", "GHANA", "PANAMÁ", "Estadio Toronto"],
+      ["23/06 16:00", "INGLATERRA", "GHANA", "Estadio Boston"],
+      ["23/06 19:00", "PANAMÁ", "CROACIA", "Estadio Toronto"],
+      ["27/06 17:00", "PANAMÁ", "INGLATERRA", "Estadio Nueva York Nueva Jersey"],
+      ["27/06 17:00", "CROACIA", "GHANA", "Estadio Filadelfia"]
     ]
   };
 
@@ -196,7 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let matchesHtml = "";
       matchesByGroup[group].forEach((match, mIdx) => {
-        const [time, t1, t2] = match;
+        const [time, t1, t2, stadium] = match;
         const matchId = `G${group}_M${mIdx + 1}`;
         const flag1 = flags[t1] || "un";
         const flag2 = flags[t2] || "un";
@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <img src="https://flagcdn.com/w40/${flag2}.png" class="flag-icon" alt="${t2}">
               <span>${t2}</span>
             </td>
-            <td class="td-stadium" data-label="Estadio">Por definir</td>
+            <td class="td-stadium" data-label="Estadio">${stadium || "Por definir"}</td>
           </tr>
         `;
       });

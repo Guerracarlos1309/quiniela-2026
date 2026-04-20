@@ -367,6 +367,11 @@ document.addEventListener("DOMContentLoaded", () => {
           statusBadge.classList.remove("active");
           statusBanner.style.display = "flex";
         }
+        
+        // Forced Password Change Check
+        if (currentUser.must_change_password) {
+          document.getElementById("force-change-password-modal").style.display = "flex";
+        }
 
         // Fetch settings (lock status)
         try {
@@ -605,23 +610,19 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  document.querySelectorAll(".close-modal").forEach(span => {
-    span.onclick = () => { 
-        loginModal.style.display = "none"; 
-        regModal.style.display = "none"; 
-        rulesModal.style.display = "none";
-        confirmModal.style.display = "none";
-        document.getElementById("lock-modal").style.display = "none";
+  // Modal Closing Logic (Generic)
+  document.querySelectorAll(".close-modal, .close-modal-btn, .close-rules-modal").forEach(btn => {
+    btn.onclick = () => { 
+      const modal = btn.closest(".modal-overlay");
+      if (modal) modal.style.display = "none";
     };
   });
 
-  document.querySelectorAll(".close-modal-btn, .close-rules-modal").forEach(btn => {
-    btn.onclick = () => { 
-        document.getElementById("lock-modal").style.display = "none";
-        rulesModal.style.display = "none";
-        confirmModal.style.display = "none";
-    };
-  });
+  window.onclick = (event) => {
+    if (event.target.classList.contains("modal-overlay")) {
+      event.target.style.display = "none";
+    }
+  };
 
   document.getElementById("login-submit").onclick = async () => {
     const phone = document.getElementById("login-phone").value;
@@ -703,6 +704,51 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("logout-btn").onclick = logout;
+
+  // Forced password change logic
+  const forcePwSubmit = document.getElementById("force-pw-submit");
+  if (forcePwSubmit) {
+    forcePwSubmit.onclick = async () => {
+      const newPw = document.getElementById("force-new-pw").value;
+      const confirmPw = document.getElementById("force-confirm-pw").value;
+      const msgBox = document.getElementById("force-pw-msg");
+
+      if (!newPw || newPw.length < 6) {
+        showMessage("❌ La contraseña debe tener al menos 6 caracteres", "error", msgBox);
+        return;
+      }
+      if (newPw !== confirmPw) {
+        showMessage("❌ Las contraseñas no coinciden", "error", msgBox);
+        return;
+      }
+
+      forcePwSubmit.disabled = true;
+      forcePwSubmit.innerHTML = '<span class="spinner-mini"></span> Actualizando...';
+
+      try {
+        const res = await apiFetch("/api/user/change-password", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": userToken
+          },
+          body: JSON.stringify({ newPassword: newPw }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          showMessage("✅ Contraseña actualizada! Recargando...", "success", msgBox);
+          setTimeout(() => location.reload(), 2000);
+        } else {
+          throw new Error(data.error || "Error al actualizar");
+        }
+      } catch (err) {
+        showMessage(`❌ ${err.message}`, "error", msgBox);
+        forcePwSubmit.disabled = false;
+        forcePwSubmit.innerHTML = "Actualizar y Continuar";
+      }
+    };
+  }
 
   // Edit logic
   document.getElementById("edit-btn").onclick = () => {

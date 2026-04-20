@@ -67,7 +67,7 @@ async function authenticateToken(req, res, next) {
         "SELECT id, name, phone, password_hash, is_active FROM submissions WHERE phone = $1",
         [cleanPhone]
       );
-      if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
+      if (result.rows.length === 0) return res.status(401).json({ error: "Número de teléfono no registrado" });
       const user = result.rows[0];
       const match = await bcrypt.compare(password, user.password_hash);
       if (!match) return res.status(401).json({ error: "Credenciales inválidas" });
@@ -138,6 +138,7 @@ async function ensureSchema() {
     await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS password_hash TEXT;");
     await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'participant';");
     await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE;");
+    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE;");
     console.log("✅ Submissions table migration checked/applied.");
   } catch (err) {
     console.error("❌ Migration error (submissions):", err.message);
@@ -359,15 +360,19 @@ app.post("/api/login", async (req, res) => {
   if (!phone || !password) return res.status(400).json({ error: "Faltan credenciales" });
 
   const cleanPhone = String(phone).replace(/\D/g, "");
+  
+  if (!cleanPhone) {
+    return res.status(401).json({ error: "Número de teléfono no registrado" });
+  }
 
   try {
     const result = await pool.query(
-      "SELECT id, name, phone, password_hash, is_active FROM submissions WHERE phone = $1",
+      "SELECT id, name, phone, password_hash, is_active, must_change_password FROM submissions WHERE phone = $1",
       [cleanPhone]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: "Usuario no encontrado" });
+      return res.status(401).json({ error: "Número de teléfono no registrado" });
     }
 
     const user = result.rows[0];
@@ -382,7 +387,13 @@ app.post("/api/login", async (req, res) => {
 
     res.json({ 
       message: "Login exitoso", 
-      user: { id: user.id, name: user.name, phone: user.phone, is_active: user.is_active },
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        phone: user.phone, 
+        is_active: user.is_active,
+        must_change_password: user.must_change_password
+      },
       token
     });
   } catch (error) {
@@ -393,11 +404,11 @@ app.post("/api/login", async (req, res) => {
 app.get("/api/user/me", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, phone, is_active FROM submissions WHERE id = $1",
+      "SELECT id, name, phone, is_active, must_change_password FROM submissions WHERE id = $1",
       [req.user.id]
     );
 
-    if (result.rows.length === 0) return res.status(401).json({ error: "Usuario no encontrado" });
+    if (result.rows.length === 0) return res.status(401).json({ error: "Número de teléfono no registrado" });
     const user = result.rows[0];
 
     // Buscar si ya tiene predicciones
@@ -407,11 +418,33 @@ app.get("/api/user/me", authenticateToken, async (req, res) => {
     );
 
     res.json({
-      user: { id: user.id, name: user.name, phone: user.phone, is_active: user.is_active },
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        phone: user.phone, 
+        is_active: user.is_active,
+        must_change_password: user.must_change_password
+      },
       predictions: predictionsRes.rows
     });
   } catch (error) {
     res.status(500).json({ error: "Error al obtener perfil" });
+  }
+});
+
+app.post("/api/user/change-password", authenticateToken, async (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword) return res.status(400).json({ error: "Nueva contraseña requerida" });
+
+  try {
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      "UPDATE submissions SET password_hash = $1, must_change_password = FALSE WHERE id = $2",
+      [hash, req.user.id]
+    );
+    res.json({ message: "Contraseña actualizada con éxito" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al actualizar la contraseña" });
   }
 });
 
@@ -426,7 +459,7 @@ app.post("/api/admin/login", async (req, res) => {
       [username],
     );
     if (result.rows.length === 0)
-      return res.status(401).json({ error: "Usuario no encontrado" });
+      return res.status(401).json({ error: "Usuario administrador no encontrado" });
 
     const match = await bcrypt.compare(password, result.rows[0].password_hash);
     if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
@@ -693,6 +726,24 @@ app.post("/api/admin/submissions/:id/toggle-active", authenticateAdmin, async (r
     res.json({ message: "Estado de usuario actualizado", is_active: result.rows[0].is_active });
   } catch (err) {
     res.status(500).json({ error: "Error al actualizar estado" });
+  }
+});
+
+app.post("/api/admin/submissions/:id/reset-password", authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+  if (!newPassword) return res.status(400).json({ error: "Nueva contraseña requerida" });
+
+  try {
+    const hash = await bcrypt.hash(newPassword, 10);
+    const result = await pool.query(
+      "UPDATE submissions SET password_hash = $1, must_change_password = TRUE WHERE id = $2 RETURNING id",
+      [hash, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json({ message: "Contraseña restablecida. El usuario deberá cambiarla al ingresar." });
+  } catch (err) {
+    res.status(500).json({ error: "Error al restablecer contraseña" });
   }
 });
 

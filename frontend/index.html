@@ -156,7 +156,7 @@
             <li>
               Por favor <strong>no olvidar la contraseña</strong> asignada al
               momento de registrarse, ya que la necesitarán para iniciar sesión.
-              En caso de olvidarla no se podrá recuperar.
+              En caso de olvidarla, comuniquese con los administradores.
             </li>
           </ul>
         </div>
@@ -326,9 +326,16 @@
     </div>
 
     <!-- NEW: Forced Password Change Modal -->
-    <div id="force-change-password-modal" class="modal-overlay" style="z-index: 10001;">
+    <div
+      id="force-change-password-modal"
+      class="modal-overlay"
+      style="z-index: 10001"
+    >
       <div class="modal-content auth-modal" style="text-align: center">
-        <div class="group-header" style="justify-content: center; color: var(--accent-color)">
+        <div
+          class="group-header"
+          style="justify-content: center; color: var(--accent-color)"
+        >
           🔐 Cambio de Contraseña Obligatorio
         </div>
         <div style="margin: 2rem 0">
@@ -336,23 +343,28 @@
             Tu contraseña ha sido restablecida por un administrador.
           </p>
           <p style="color: var(--text-muted); font-size: 0.9rem">
-            Por seguridad, debes establecer una nueva contraseña para continuar usando tu cuenta.
+            Por seguridad, debes establecer una nueva contraseña para continuar
+            usando tu cuenta.
           </p>
-          
-          <div class="input-group" style="margin-top: 2rem; text-align: left;">
+
+          <div class="input-group" style="margin-top: 2rem; text-align: left">
             <label>Nueva Contraseña</label>
-            <input type="password" id="force-new-pw" placeholder="Mínimo 6 caracteres" />
+            <input
+              type="password"
+              id="force-new-pw"
+              placeholder="Mínimo 6 caracteres"
+            />
           </div>
-          <div class="input-group" style="text-align: left;">
+          <div class="input-group" style="text-align: left">
             <label>Confirmar Nueva Contraseña</label>
             <input type="password" id="force-confirm-pw" />
           </div>
         </div>
-        
+
         <button id="force-pw-submit" class="btn-primary full-width">
           Actualizar y Continuar
         </button>
-        <div id="force-pw-msg" class="msg" style="margin-top: 1rem;"></div>
+        <div id="force-pw-msg" class="msg" style="margin-top: 1rem"></div>
       </div>
     </div>
 

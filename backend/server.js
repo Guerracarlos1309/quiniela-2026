@@ -24,9 +24,18 @@ if (!process.env.DATABASE_URL) {
   throw new Error("Falta DATABASE_URL en variables de entorno.");
 }
 
+let connectionString = process.env.DATABASE_URL;
+
+if (!connectionString.includes("localhost") && !connectionString.includes("127.0.0.1")) {
+  // Añadir flag de compatibilidad para silenciar el aviso de SSL en versiones recientes de 'pg'
+  if (!connectionString.includes("uselibpqcompat=")) {
+    connectionString += (connectionString.includes("?") ? "&" : "?") + "uselibpqcompat=true";
+  }
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes("localhost") || process.env.DATABASE_URL.includes("127.0.0.1")
+  connectionString: connectionString,
+  ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
     ? false
     : { rejectUnauthorized: false },
 });

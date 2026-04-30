@@ -392,6 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("read-only-badge").style.display = "inline-block";
             document.getElementById("edit-btn").style.display = "inline-block";
           }
+          document.getElementById("download-pdf-btn").style.display = "inline-block";
           document.getElementById("submit-section").style.display = "none";
           generateMatches(data.predictions);
         } else {
@@ -404,6 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           document.getElementById("read-only-badge").style.display = "none";
           document.getElementById("edit-btn").style.display = "none";
+          document.getElementById("download-pdf-btn").style.display = "none";
           generateMatches();
         }
       } else {
@@ -875,6 +877,63 @@ document.addEventListener("DOMContentLoaded", () => {
       submitBtn.disabled = false;
     }
   };
+
+  const downloadPdfBtn = document.getElementById("download-pdf-btn");
+  if (downloadPdfBtn) {
+    downloadPdfBtn.onclick = () => {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        showMessage("❌ Error al cargar la librería de PDF. Por favor recarga la página.", "error");
+        return;
+      }
+      
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text("Mis Predicciones - Quiniela Mundial 2026", 14, 22);
+      
+      doc.setFontSize(12);
+      doc.text(`Participante: ${currentUser ? currentUser.name : 'Usuario'}`, 14, 32);
+      doc.text(`Teléfono: ${currentUser ? currentUser.phone : ''}`, 14, 38);
+      doc.text(`Fecha de generación: ${new Date().toLocaleString()}`, 14, 44);
+
+      const tableData = [];
+      const rows = document.querySelectorAll(".match-row-tr");
+      rows.forEach((row) => {
+        const date = row.querySelector(".td-date").textContent.trim();
+        const inputs = row.querySelectorAll(".score-input");
+        if (inputs.length >= 2) {
+          const t1 = inputs[0].dataset.team;
+          const s1 = inputs[0].value.trim() === "" ? "0" : inputs[0].value;
+          const t2 = inputs[1].dataset.team;
+          const s2 = inputs[1].value.trim() === "" ? "0" : inputs[1].value;
+          const group = row.dataset.group;
+          
+          tableData.push([`Grupo ${group}`, date, t1, s1, "-", s2, t2]);
+        }
+      });
+
+      doc.autoTable({
+        startY: 50,
+        head: [['Grupo', 'Fecha', 'Local', '', '', '', 'Visitante']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [40, 167, 69] },
+        styles: { halign: 'center' },
+        columnStyles: {
+          0: { halign: 'center' },
+          1: { halign: 'center' },
+          2: { halign: 'right' },
+          3: { halign: 'center', fontStyle: 'bold' },
+          4: { halign: 'center' },
+          5: { halign: 'center', fontStyle: 'bold' },
+          6: { halign: 'left' }
+        }
+      });
+
+      doc.save(`Quiniela_2026_${currentUser ? currentUser.name.replace(/\s+/g, '_') : 'Usuario'}.pdf`);
+    };
+  }
 
   function showMessage(msg, type, target = null) {
     const box = target || messageBox;

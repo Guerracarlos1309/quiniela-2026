@@ -26,18 +26,24 @@ if (!process.env.DATABASE_URL) {
 
 let connectionString = process.env.DATABASE_URL;
 
-if (!connectionString.includes("localhost") && !connectionString.includes("127.0.0.1")) {
+if (
+  !connectionString.includes("localhost") &&
+  !connectionString.includes("127.0.0.1")
+) {
   // Añadir flag de compatibilidad para silenciar el aviso de SSL en versiones recientes de 'pg'
   if (!connectionString.includes("uselibpqcompat=")) {
-    connectionString += (connectionString.includes("?") ? "&" : "?") + "uselibpqcompat=true";
+    connectionString +=
+      (connectionString.includes("?") ? "&" : "?") + "uselibpqcompat=true";
   }
 }
 
 const pool = new Pool({
   connectionString: connectionString,
-  ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
-    ? false
-    : { rejectUnauthorized: false },
+  ssl:
+    connectionString.includes("localhost") ||
+    connectionString.includes("127.0.0.1")
+      ? false
+      : { rejectUnauthorized: false },
 });
 
 pool.on("error", (err) => {
@@ -77,13 +83,22 @@ async function authenticateToken(req, res, next) {
     try {
       const result = await pool.query(
         "SELECT id, name, phone, password_hash, is_active FROM submissions WHERE phone = $1",
-        [cleanPhone]
+        [cleanPhone],
       );
-      if (result.rows.length === 0) return res.status(401).json({ error: "Número de teléfono no registrado" });
+      if (result.rows.length === 0)
+        return res
+          .status(401)
+          .json({ error: "Número de teléfono no registrado" });
       const user = result.rows[0];
       const match = await bcrypt.compare(password, user.password_hash);
-      if (!match) return res.status(401).json({ error: "Credenciales inválidas" });
-      req.user = { id: user.id, phone: user.phone, role: "participant", is_active: user.is_active };
+      if (!match)
+        return res.status(401).json({ error: "Credenciales inválidas" });
+      req.user = {
+        id: user.id,
+        phone: user.phone,
+        role: "participant",
+        is_active: user.is_active,
+      };
       return next();
     } catch (err) {
       return res.status(500).json({ error: "Error de auth" });
@@ -91,7 +106,8 @@ async function authenticateToken(req, res, next) {
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: "Token inválido o expirado" });
+    if (err)
+      return res.status(403).json({ error: "Token inválido o expirado" });
     req.user = user;
     next();
   });
@@ -112,10 +128,13 @@ async function authenticateAdmin(req, res, next) {
     try {
       const result = await pool.query(
         "SELECT password_hash FROM users WHERE username = $1",
-        [username]
+        [username],
       );
       if (result.rows.length > 0) {
-        const match = await bcrypt.compare(password, result.rows[0].password_hash);
+        const match = await bcrypt.compare(
+          password,
+          result.rows[0].password_hash,
+        );
         if (match) {
           req.user = { username, role: "admin" };
           return next();
@@ -125,7 +144,8 @@ async function authenticateAdmin(req, res, next) {
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err || user.role !== "admin") return res.status(403).json({ error: "No autorizado" });
+    if (err || user.role !== "admin")
+      return res.status(403).json({ error: "No autorizado" });
     req.user = user;
     next();
   });
@@ -147,10 +167,18 @@ async function ensureSchema() {
 
   // Migration for existing tables - ensure columns exist
   try {
-    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS password_hash TEXT;");
-    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'participant';");
-    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE;");
-    await pool.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE;");
+    await pool.query(
+      "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS password_hash TEXT;",
+    );
+    await pool.query(
+      "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'participant';",
+    );
+    await pool.query(
+      "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE;",
+    );
+    await pool.query(
+      "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT FALSE;",
+    );
     console.log("✅ Submissions table migration checked/applied.");
   } catch (err) {
     console.error("❌ Migration error (submissions):", err.message);
@@ -284,38 +312,62 @@ app.post("/api/predict", authenticateToken, async (req, res) => {
 
   const client = await pool.connect();
   try {
-    const lockRes = await client.query("SELECT value FROM settings WHERE key = 'predictions_locked'");
+    const lockRes = await client.query(
+      "SELECT value FROM settings WHERE key = 'predictions_locked'",
+    );
     const isLocked = lockRes.rows[0]?.value === "true";
 
     if (isLocked) {
-      return res.status(403).json({ error: "Las predicciones están cerradas debido al comienzo del torneo." });
+      return res
+        .status(403)
+        .json({
+          error:
+            "Las predicciones están cerradas debido al comienzo del torneo.",
+        });
     }
 
     // Re-verificar estado de activación real en BD (por si cambió desde el login)
-    const userStatusRes = await client.query("SELECT is_active FROM submissions WHERE id = $1", [req.user.id]);
+    const userStatusRes = await client.query(
+      "SELECT is_active FROM submissions WHERE id = $1",
+      [req.user.id],
+    );
     if (userStatusRes.rows.length === 0 || !userStatusRes.rows[0].is_active) {
-      return res.status(403).json({ error: "Estás siendo revisado, espera hasta que activen tu cuenta" });
+      return res
+        .status(403)
+        .json({
+          error: "Estás siendo revisado, espera hasta que activen tu cuenta",
+        });
     }
 
     await client.query("BEGIN");
 
     // Borrar predicciones anteriores si existen
-    await client.query("DELETE FROM predictions WHERE submission_id = $1", [req.user.id]);
+    await client.query("DELETE FROM predictions WHERE submission_id = $1", [
+      req.user.id,
+    ]);
 
     // OPTIMIZATION: BATCH INSERT
     if (predictions.length > 0) {
       const values = [];
       const params = [req.user.id];
       let placeholderIdx = 2;
-      
+
       const insertQuery = `
         INSERT INTO predictions (submission_id, match_id, team1, score1, team2, score2)
-        VALUES ${predictions.map(p => {
-          const start = placeholderIdx;
-          placeholderIdx += 5;
-          values.push(p.matchId, p.team1, parseInt(p.score1, 10), p.team2, parseInt(p.score2, 10));
-          return `($1, $${start}, $${start+1}, $${start+2}, $${start+3}, $${start+4})`;
-        }).join(", ")}
+        VALUES ${predictions
+          .map((p) => {
+            const start = placeholderIdx;
+            placeholderIdx += 5;
+            values.push(
+              p.matchId,
+              p.team1,
+              parseInt(p.score1, 10),
+              p.team2,
+              parseInt(p.score2, 10),
+            );
+            return `($1, $${start}, $${start + 1}, $${start + 2}, $${start + 3}, $${start + 4})`;
+          })
+          .join(", ")}
       `;
       await client.query(insertQuery, params.concat(values));
     }
@@ -344,35 +396,40 @@ app.post("/api/register", async (req, res) => {
   try {
     const result = await pool.query(
       "INSERT INTO submissions (name, phone, password_hash) VALUES ($1, $2, $3) RETURNING id, name, phone, is_active",
-      [name, cleanPhone, hash]
+      [name, cleanPhone, hash],
     );
     const user = result.rows[0];
     const token = jwt.sign(
-      { id: user.id, phone: user.phone, role: "participant" }, 
-      JWT_SECRET, 
-      { expiresIn: "7d" }
+      { id: user.id, phone: user.phone, role: "participant" },
+      JWT_SECRET,
+      { expiresIn: "7d" },
     );
 
-    res.status(201).json({ 
-      message: "Registro exitoso", 
+    res.status(201).json({
+      message: "Registro exitoso",
       user,
-      token
+      token,
     });
   } catch (err) {
     if (err.code === "23505") {
-      return res.status(400).json({ error: "Este número de teléfono ya está registrado" });
+      return res
+        .status(400)
+        .json({ error: "Este número de teléfono ya está registrado" });
     }
     console.error("REGISTRATION ERROR:", err);
-    res.status(500).json({ error: "Error al registrar usuario: " + err.message });
+    res
+      .status(500)
+      .json({ error: "Error al registrar usuario: " + err.message });
   }
 });
 
 app.post("/api/login", async (req, res) => {
   const { phone, password } = req.body;
-  if (!phone || !password) return res.status(400).json({ error: "Faltan credenciales" });
+  if (!phone || !password)
+    return res.status(400).json({ error: "Faltan credenciales" });
 
   const cleanPhone = String(phone).replace(/\D/g, "");
-  
+
   if (!cleanPhone) {
     return res.status(401).json({ error: "Número de teléfono no registrado" });
   }
@@ -380,11 +437,13 @@ app.post("/api/login", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT id, name, phone, password_hash, is_active, must_change_password FROM submissions WHERE phone = $1",
-      [cleanPhone]
+      [cleanPhone],
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: "Número de teléfono no registrado" });
+      return res
+        .status(401)
+        .json({ error: "Número de teléfono no registrado" });
     }
 
     const user = result.rows[0];
@@ -392,21 +451,21 @@ app.post("/api/login", async (req, res) => {
     if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
 
     const token = jwt.sign(
-      { id: user.id, phone: user.phone, role: "participant" }, 
-      JWT_SECRET, 
-      { expiresIn: "7d" }
+      { id: user.id, phone: user.phone, role: "participant" },
+      JWT_SECRET,
+      { expiresIn: "7d" },
     );
 
-    res.json({ 
-      message: "Login exitoso", 
-      user: { 
-        id: user.id, 
-        name: user.name, 
-        phone: user.phone, 
+    res.json({
+      message: "Login exitoso",
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
         is_active: user.is_active,
-        must_change_password: user.must_change_password
+        must_change_password: user.must_change_password,
       },
-      token
+      token,
     });
   } catch (error) {
     res.status(500).json({ error: "Error en el servidor" });
@@ -417,27 +476,30 @@ app.get("/api/user/me", authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT id, name, phone, is_active, must_change_password FROM submissions WHERE id = $1",
-      [req.user.id]
+      [req.user.id],
     );
 
-    if (result.rows.length === 0) return res.status(401).json({ error: "Número de teléfono no registrado" });
+    if (result.rows.length === 0)
+      return res
+        .status(401)
+        .json({ error: "Número de teléfono no registrado" });
     const user = result.rows[0];
 
     // Buscar si ya tiene predicciones
     const predictionsRes = await pool.query(
       "SELECT match_id, team1, score1, team2, score2 FROM predictions WHERE submission_id = $1",
-      [user.id]
+      [user.id],
     );
 
     res.json({
-      user: { 
-        id: user.id, 
-        name: user.name, 
-        phone: user.phone, 
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
         is_active: user.is_active,
-        must_change_password: user.must_change_password
+        must_change_password: user.must_change_password,
       },
-      predictions: predictionsRes.rows
+      predictions: predictionsRes.rows,
     });
   } catch (error) {
     res.status(500).json({ error: "Error al obtener perfil" });
@@ -446,13 +508,14 @@ app.get("/api/user/me", authenticateToken, async (req, res) => {
 
 app.post("/api/user/change-password", authenticateToken, async (req, res) => {
   const { newPassword } = req.body;
-  if (!newPassword) return res.status(400).json({ error: "Nueva contraseña requerida" });
+  if (!newPassword)
+    return res.status(400).json({ error: "Nueva contraseña requerida" });
 
   try {
     const hash = await bcrypt.hash(newPassword, 10);
     await pool.query(
       "UPDATE submissions SET password_hash = $1, must_change_password = FALSE WHERE id = $2",
-      [hash, req.user.id]
+      [hash, req.user.id],
     );
     res.json({ message: "Contraseña actualizada con éxito" });
   } catch (error) {
@@ -471,16 +534,16 @@ app.post("/api/admin/login", async (req, res) => {
       [username],
     );
     if (result.rows.length === 0)
-      return res.status(401).json({ error: "Usuario administrador no encontrado" });
+      return res
+        .status(401)
+        .json({ error: "Usuario administrador no encontrado" });
 
     const match = await bcrypt.compare(password, result.rows[0].password_hash);
     if (!match) return res.status(401).json({ error: "Contraseña incorrecta" });
 
-    const token = jwt.sign(
-      { username, role: "admin" }, 
-      JWT_SECRET, 
-      { expiresIn: "24h" }
-    );
+    const token = jwt.sign({ username, role: "admin" }, JWT_SECRET, {
+      expiresIn: "24h",
+    });
 
     res.json({ token, username });
   } catch (error) {
@@ -489,7 +552,6 @@ app.post("/api/admin/login", async (req, res) => {
 });
 
 app.post("/api/admin/settings", authenticateAdmin, async (req, res) => {
-
   const { key, value } = req.body;
   if (!key || value === undefined) {
     return res.status(400).json({ error: "Faltan datos" });
@@ -498,7 +560,7 @@ app.post("/api/admin/settings", authenticateAdmin, async (req, res) => {
   try {
     await pool.query(
       "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-      [key, String(value)]
+      [key, String(value)],
     );
     res.json({ message: "Configuración actualizada" });
   } catch (error) {
@@ -529,7 +591,10 @@ app.post("/api/admin/set-result", authenticateAdmin, async (req, res) => {
 app.get("/api/leaderboard", async (req, res) => {
   // Check cache
   const now = Date.now();
-  if (leaderboardCache.data && (now - leaderboardCache.timestamp < CACHE_DURATION)) {
+  if (
+    leaderboardCache.data &&
+    now - leaderboardCache.timestamp < CACHE_DURATION
+  ) {
     return res.json(leaderboardCache.data);
   }
 
@@ -608,13 +673,13 @@ app.get("/api/leaderboard", async (req, res) => {
           (Number(r.outcome_hits) || 0),
       ),
     }));
-    
+
     // Update cache
     leaderboardCache = {
       data: enriched,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     res.json(enriched);
   } catch (error) {
     res.status(500).json({ error: "Error al calcular tabla" });
@@ -622,7 +687,6 @@ app.get("/api/leaderboard", async (req, res) => {
 });
 
 app.get("/api/admin/entries", authenticateAdmin, async (req, res) => {
-
   try {
     const entriesQuery = `
             SELECT
@@ -704,60 +768,81 @@ app.get("/api/admin/entries", authenticateAdmin, async (req, res) => {
   }
 });
 
-app.delete("/api/admin/submissions/:id", authenticateAdmin, async (req, res) => {
-  const { id } = req.params;
-  console.log(`Intentando borrar participante con ID: ${id}`);
+app.delete(
+  "/api/admin/submissions/:id",
+  authenticateAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    console.log(`Intentando borrar participante con ID: ${id}`);
 
-  try {
-    const result = await pool.query("DELETE FROM submissions WHERE id = $1", [
-      id,
-    ]);
-    if (result.rowCount === 0) {
-      console.log(`No se encontró participante con ID: ${id} para borrar.`);
-      return res
-        .status(404)
-        .json({ error: "No se encontró el participante o ya fue borrado" });
+    try {
+      const result = await pool.query("DELETE FROM submissions WHERE id = $1", [
+        id,
+      ]);
+      if (result.rowCount === 0) {
+        console.log(`No se encontró participante con ID: ${id} para borrar.`);
+        return res
+          .status(404)
+          .json({ error: "No se encontró el participante o ya fue borrado" });
+      }
+      console.log(`✅ Participante con ID: ${id} borrado con éxito.`);
+      res.json({ message: "Participante eliminado con éxito" });
+    } catch (error) {
+      console.error("Error al borrar participante en BD:", error);
+      res.status(500).json({ error: "Error al borrar el participante" });
     }
-    console.log(`✅ Participante con ID: ${id} borrado con éxito.`);
-    res.json({ message: "Participante eliminado con éxito" });
-  } catch (error) {
-    console.error("Error al borrar participante en BD:", error);
-    res.status(500).json({ error: "Error al borrar el participante" });
-  }
-});
+  },
+);
 
-app.post("/api/admin/submissions/:id/toggle-active", authenticateAdmin, async (req, res) => {
-  const { id } = req.params;
+app.post(
+  "/api/admin/submissions/:id/toggle-active",
+  authenticateAdmin,
+  async (req, res) => {
+    const { id } = req.params;
 
-  try {
-    const result = await pool.query(
-      "UPDATE submissions SET is_active = NOT is_active WHERE id = $1 RETURNING is_active",
-      [id]
-    );
-    if (result.rowCount === 0) return res.status(404).json({ error: "Usuario no encontrado" });
-    res.json({ message: "Estado de usuario actualizado", is_active: result.rows[0].is_active });
-  } catch (err) {
-    res.status(500).json({ error: "Error al actualizar estado" });
-  }
-});
+    try {
+      const result = await pool.query(
+        "UPDATE submissions SET is_active = NOT is_active WHERE id = $1 RETURNING is_active",
+        [id],
+      );
+      if (result.rowCount === 0)
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      res.json({
+        message: "Estado de usuario actualizado",
+        is_active: result.rows[0].is_active,
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Error al actualizar estado" });
+    }
+  },
+);
 
-app.post("/api/admin/submissions/:id/reset-password", authenticateAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { newPassword } = req.body;
-  if (!newPassword) return res.status(400).json({ error: "Nueva contraseña requerida" });
+app.post(
+  "/api/admin/submissions/:id/reset-password",
+  authenticateAdmin,
+  async (req, res) => {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    if (!newPassword)
+      return res.status(400).json({ error: "Nueva contraseña requerida" });
 
-  try {
-    const hash = await bcrypt.hash(newPassword, 10);
-    const result = await pool.query(
-      "UPDATE submissions SET password_hash = $1, must_change_password = TRUE WHERE id = $2 RETURNING id",
-      [hash, id]
-    );
-    if (result.rowCount === 0) return res.status(404).json({ error: "Usuario no encontrado" });
-    res.json({ message: "Contraseña restablecida. El usuario deberá cambiarla al ingresar." });
-  } catch (err) {
-    res.status(500).json({ error: "Error al restablecer contraseña" });
-  }
-});
+    try {
+      const hash = await bcrypt.hash(newPassword, 10);
+      const result = await pool.query(
+        "UPDATE submissions SET password_hash = $1, must_change_password = TRUE WHERE id = $2 RETURNING id",
+        [hash, id],
+      );
+      if (result.rowCount === 0)
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      res.json({
+        message:
+          "Contraseña restablecida. El usuario deberá cambiarla al ingresar.",
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Error al restablecer contraseña" });
+    }
+  },
+);
 
 app.post("/api/admin/reset-results", authenticateAdmin, async (req, res) => {
   clearLeaderboardCache();
@@ -782,36 +867,57 @@ app.post("/api/admin/reset-all", authenticateAdmin, async (req, res) => {
 });
 
 async function createInitialUser() {
-  const userCheck = await pool.query(
-    "SELECT * FROM users WHERE username = $1",
-    ["carlos"],
-  );
-  if (userCheck.rows.length === 0) {
-    const hash = await bcrypt.hash("admin2026", 10);
-    await pool.query(
-      "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)",
-      ["carlos", hash, "admin"],
+  try {
+    const userCheck = await pool.query(
+      "SELECT * FROM users WHERE username = $1",
+      ["carlos"],
     );
-    console.log("✅ Usuario administrador creado con éxito");
+
+    // ========================================================
+    // COLOCA TU NUEVA CONTRASEÑA AQUÍ
+    // ========================================================
+    const miNuevaClave = "Juan16052004";
+
+    // Encriptamos la nueva clave con bcryptjs
+    const hash = await bcrypt.hash(miNuevaClave, 10);
+
+    if (userCheck.rows.length === 0) {
+      // Si el usuario no existe por algún motivo, lo crea con la nueva clave
+      await pool.query(
+        "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)",
+        ["carlos", hash, "admin"],
+      );
+      console.log("✅ Usuario administrador creado con éxito");
+    } else {
+      // Si ya existe, le cambia la clave vieja por la nueva que pusiste arriba
+      await pool.query(
+        "UPDATE users SET password_hash = $1 WHERE username = $2",
+        [hash, "carlos"],
+      );
+      console.log(
+        "🔄 Contraseña del administrador 'carlos' actualizada con éxito.",
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error en createInitialUser:", error);
   }
 }
 
 async function start() {
   try {
-    // Probar conexión inicial
     const res = await pool.query("SELECT NOW()");
     console.log("✅ Conexión a PostgreSQL establecida:", res.rows[0].now);
 
     await ensureSchema();
 
-    //await createInitialUser();
-
-    const hash = await bcrypt.hash("admin2026", 10);
+    // Limpiamos cualquier duplicado que haya quedado de antes en la tabla 'users'
     await pool.query(
-      "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) " +
-        "ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash",
-      ["carlos", hash, "admin"],
+      "DELETE FROM users WHERE username = $1 AND id NOT IN (SELECT id FROM users WHERE username = $1 LIMIT 1)",
+      ["carlos"],
     );
+
+    // Ejecuta la función que actualiza tu clave
+    await createInitialUser();
 
     await importLegacyJsonIfNeeded();
     app.listen(PORT, () => {

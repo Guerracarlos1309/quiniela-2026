@@ -1771,23 +1771,22 @@ footer {
     }
 
     .predictions-list-table td:nth-child(1) {
-        width: 50%;
+        width: 75%;
         text-align: left;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        padding-right: 4px !important;
+        padding-right: 8px !important;
     }
 
     .predictions-list-table td:nth-child(2) {
-        width: 18%;
-        text-align: center;
+        width: 25%;
+        text-align: right;
         font-weight: bold;
     }
 
     .predictions-list-table td:nth-child(3) {
-        width: 32%;
-        text-align: right;
+        display: none;
     }
 
     .badge-pts {

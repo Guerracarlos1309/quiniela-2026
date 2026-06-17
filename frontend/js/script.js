@@ -639,10 +639,11 @@ document.addEventListener("DOMContentLoaded", () => {
         matchPredictions.forEach(pred => {
           const result = calculateHitPoints(pred.score1, pred.score2, official?.score1, official?.score2);
           const pointsBadgeClass = `badge-pts-${result.class}`;
+          const textClass = `text-pts-${result.class}`;
           
           predictionsRowsHtml += `
             <tr>
-              <td><strong>${pred.name}</strong></td>
+              <td><strong class="${textClass}">${pred.name}</strong></td>
               <td style="text-align: center; font-weight: bold; color: #fff;">${pred.score1} - ${pred.score2}</td>
               <td style="text-align: right;">
                 <span class="badge-pts ${pointsBadgeClass}">${result.pts} (${result.label})</span>

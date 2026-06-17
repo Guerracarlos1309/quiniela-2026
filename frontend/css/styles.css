@@ -1741,54 +1741,52 @@ footer {
         padding: 0.75rem;
     }
 
-    .predictions-list-table,
-    .predictions-list-table tbody,
-    .predictions-list-table tr {
-        display: block;
+    .predictions-list-table {
         width: 100%;
+        table-layout: fixed;
     }
 
     .predictions-list-table thead {
         display: none;
     }
 
-    .predictions-list-table tr {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    .predictions-list-table tbody {
+        display: table-row-group;
     }
 
-    .predictions-list-table tr:last-child {
-        border-bottom: none;
+    .predictions-list-table tr {
+        display: table-row;
     }
 
     .predictions-list-table td {
-        padding: 0 !important;
-        border: none !important;
+        display: table-cell;
+        padding: 8px 4px !important;
         font-size: 0.8rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        vertical-align: middle;
+    }
+
+    .predictions-list-table tr:last-child td {
+        border-bottom: none;
     }
 
     .predictions-list-table td:nth-child(1) {
-        flex: 1;
-        min-width: 0;
+        width: 50%;
+        text-align: left;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        text-align: left;
-        padding-right: 8px !important;
+        padding-right: 4px !important;
     }
 
     .predictions-list-table td:nth-child(2) {
-        flex-shrink: 0;
+        width: 18%;
         text-align: center;
-        margin: 0 10px;
-        min-width: 45px;
+        font-weight: bold;
     }
 
     .predictions-list-table td:nth-child(3) {
-        flex-shrink: 0;
+        width: 32%;
         text-align: right;
     }
 
@@ -1797,6 +1795,20 @@ footer {
         padding: 0.15rem 0.35rem;
         white-space: nowrap;
     }
+}
+
+/* Global score points name colors */
+.text-pts-exact {
+    color: #2ecc71 !important; /* Green for 3 points */
+}
+.text-pts-outcome {
+    color: #f1c40f !important; /* Yellow for 1 point */
+}
+.text-pts-miss {
+    color: #e74c3c !important; /* Red for 0 points */
+}
+.text-pts-no-result {
+    color: var(--text-light) !important; /* Default light color */
 }
 
 

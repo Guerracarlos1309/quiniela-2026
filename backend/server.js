@@ -228,6 +228,12 @@ async function ensureSchema() {
         VALUES ('predictions_locked', 'false')
         ON CONFLICT (key) DO NOTHING;
     `);
+
+  await pool.query(`
+        INSERT INTO settings (key, value)
+        VALUES ('show_all_results', 'false')
+        ON CONFLICT (key) DO NOTHING;
+    `);
 }
 
 async function importLegacyJsonIfNeeded() {
@@ -503,6 +509,63 @@ app.get("/api/user/me", authenticateToken, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: "Error al obtener perfil" });
+  }
+});
+
+app.get("/api/predictions/all", authenticateToken, async (req, res) => {
+  try {
+    const showResultsRes = await pool.query(
+      "SELECT value FROM settings WHERE key = 'show_all_results'"
+    );
+    const showAllResults = showResultsRes.rows[0]?.value === "true";
+
+    if (!showAllResults) {
+      return res.status(403).json({ error: "Los resultados globales no están disponibles en este momento." });
+    }
+
+    // Obtener todas las predicciones de usuarios activos
+    const predictionsQuery = `
+      SELECT s.name, p.match_id, p.score1, p.score2
+      FROM submissions s
+      INNER JOIN predictions p ON p.submission_id = s.id
+      WHERE s.is_active = true
+      ORDER BY s.name ASC;
+    `;
+    const { rows: predictionRows } = await pool.query(predictionsQuery);
+
+    // Obtener todos los resultados oficiales cargados
+    const resultsQuery = "SELECT match_id, score1, score2 FROM official_results;";
+    const { rows: officialRows } = await pool.query(resultsQuery);
+
+    // Organizar predicciones por match_id
+    const predictionsByMatch = {};
+    predictionRows.forEach(row => {
+      if (!predictionsByMatch[row.match_id]) {
+        predictionsByMatch[row.match_id] = [];
+      }
+      predictionsByMatch[row.match_id].push({
+        name: row.name,
+        score1: row.score1,
+        score2: row.score2
+      });
+    });
+
+    // Organizar resultados oficiales por match_id
+    const officialResults = {};
+    officialRows.forEach(row => {
+      officialResults[row.match_id] = {
+        score1: row.score1,
+        score2: row.score2
+      };
+    });
+
+    res.json({
+      predictions: predictionsByMatch,
+      officialResults: officialResults
+    });
+  } catch (error) {
+    console.error("Error al obtener predicciones globales:", error);
+    res.status(500).json({ error: "Error al obtener predicciones globales" });
   }
 });
 

@@ -231,6 +231,9 @@
         <button id="tab-leaderboard" class="user-nav-btn">
           Tabla de Posiciones
         </button>
+        <button id="tab-all-results" class="user-nav-btn" style="display: none;">
+          Resultados del Día
+        </button>
       </nav>
 
       <!-- Section: Mis Predicciones -->
@@ -267,6 +270,22 @@
             class="standings-container"
             style="display: none"
           >
+            <!-- Content will be injected here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Resultados Globales del Día -->
+      <div id="all-results-view" style="display: none">
+        <div class="card all-results-card">
+          <div class="group-header">📅 Resultados de Todos los Jugadores</div>
+          <div id="all-results-loading" class="loading-spinner">
+            Cargando predicciones de todos los jugadores...
+          </div>
+          <div id="all-results-tabs" class="matchday-tabs" style="justify-content: flex-start; display: none;">
+            <!-- Group tabs will be injected here -->
+          </div>
+          <div id="all-results-container" class="all-results-container" style="display: none; margin-top: 1.5rem;">
             <!-- Content will be injected here -->
           </div>
         </div>

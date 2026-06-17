@@ -92,6 +92,26 @@
                 <span class="lock-icon">🔓</span>
               </button>
             </div>
+            <div id="results-toggle-container" class="admin-lock-control" style="margin-left: 10px;">
+              <span
+                id="results-lock-label"
+                style="
+                  font-size: 0.8rem;
+                  color: var(--text-muted);
+                  text-transform: uppercase;
+                  font-weight: 700;
+                  margin-right: 10px;
+                "
+                >Resultados Ocultos</span
+              >
+              <button
+                id="btn-toggle-results"
+                class="lock-toggle-btn"
+                title="Mostrar/Ocultar Resultados en el Usuario"
+              >
+                <span class="results-lock-icon">🙈</span>
+              </button>
+            </div>
             <button id="btn-reset-results" class="admin-action-btn btn-danger">
               Borrar Resultados
             </button>
@@ -628,6 +648,7 @@
           const res = await apiFetch("/api/settings");
           const settings = await res.json();
           updateLockUI(settings.predictions_locked === "true");
+          updateResultsLockUI(settings.show_all_results === "true");
         } catch (err) {
           console.error("Error loading settings:", err);
         }
@@ -648,6 +669,24 @@
           label.textContent = "Sistema Abierto";
           label.style.color = "#2ecc71";
           icon.textContent = "🔓";
+        }
+      }
+
+      function updateResultsLockUI(showAllResults) {
+        const btn = document.getElementById("btn-toggle-results");
+        const label = document.getElementById("results-lock-label");
+        const icon = btn.querySelector(".results-lock-icon");
+
+        if (showAllResults) {
+          btn.classList.add("visible");
+          label.textContent = "Resultados Públicos";
+          label.style.color = "#2ecc71";
+          icon.textContent = "👁️";
+        } else {
+          btn.classList.remove("visible");
+          label.textContent = "Resultados Ocultos";
+          label.style.color = "var(--accent-color)";
+          icon.textContent = "🙈";
         }
       }
 
@@ -684,6 +723,45 @@
             );
           } else {
             showAlert("Error", "No se pudo actualizar el estado", "error");
+          }
+        } catch (err) {
+          showAlert("Error", "Error de conexión", "error");
+        }
+      };
+
+      document.getElementById("btn-toggle-results").onclick = async () => {
+        const btn = document.getElementById("btn-toggle-results");
+        const isCurrentlyVisible = btn.classList.contains("visible");
+        const newStatus = !isCurrentlyVisible;
+
+        const confirmMsg = newStatus
+          ? "¿Estás seguro de MOSTRAR todos los resultados en el perfil del usuario? Todos podrán ver los resultados de los demás."
+          : "¿Deseas OCULTAR todos los resultados en el perfil del usuario? Los resultados de los demás ya no serán visibles.";
+
+        const confirmed = await showConfirm("Visibilidad de Resultados", confirmMsg);
+        if (!confirmed) return;
+
+        try {
+          const res = await apiFetch("/api/admin/settings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: adminPass,
+            },
+            body: JSON.stringify({
+              key: "show_all_results",
+              value: newStatus,
+            }),
+          });
+          if (res.ok) {
+            updateResultsLockUI(newStatus);
+            showAlert(
+              "Éxito",
+              `Resultados de los usuarios ${newStatus ? "PÚBLICOS" : "OCULTOS"} correctamente`,
+              "success",
+            );
+          } else {
+            showAlert("Error", "No se pudo actualizar el estado de visibilidad", "error");
           }
         } catch (err) {
           showAlert("Error", "Error de conexión", "error");

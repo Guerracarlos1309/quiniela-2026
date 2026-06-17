@@ -1520,3 +1520,176 @@ footer {
     }
 }
 
+/* All Results Per Game Section Styles */
+.match-results-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
+}
+
+.match-results-card:hover {
+    border-color: rgba(212, 175, 55, 0.25);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.match-results-header {
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.match-header-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.match-header-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.header-team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex: 1;
+}
+
+.header-team.right {
+    justify-content: flex-end;
+}
+
+.header-vs {
+    color: var(--secondary-color);
+    font-weight: 800;
+    font-size: 0.9rem;
+    background: rgba(212, 175, 55, 0.1);
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    letter-spacing: 1px;
+}
+
+.official-score-badge {
+    background: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0.25rem auto;
+}
+
+.official-score-badge.pending {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--glass-border);
+    color: var(--text-muted);
+}
+
+.match-predictions-list {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    padding: 1rem;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.match-predictions-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.match-predictions-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+}
+
+.match-predictions-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.match-predictions-list::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-color);
+}
+
+.predictions-list-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--secondary-color);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.predictions-list-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.predictions-list-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: left;
+}
+
+.predictions-list-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    font-size: 0.9rem;
+}
+
+.predictions-list-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Points badges */
+.badge-pts {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.badge-pts-exact {
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.badge-pts-outcome {
+    background: rgba(241, 196, 15, 0.15);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+.badge-pts-miss {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.badge-pts-no-result {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+

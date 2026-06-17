@@ -373,11 +373,16 @@ document.addEventListener("DOMContentLoaded", () => {
           document.getElementById("force-change-password-modal").style.display = "flex";
         }
 
-        // Fetch settings (lock status)
+        // Fetch settings (lock status and show all results status)
         try {
           const settingsRes = await apiFetch("/api/settings");
           const settings = await settingsRes.json();
           predictionsLocked = settings.predictions_locked === "true";
+          const showAllResults = settings.show_all_results === "true";
+          const tabAllResults = document.getElementById("tab-all-results");
+          if (tabAllResults) {
+            tabAllResults.style.display = showAllResults ? "inline-block" : "none";
+          }
         } catch (err) {
           console.error("Error loading settings:", err);
         }
@@ -439,30 +444,255 @@ document.addEventListener("DOMContentLoaded", () => {
   let leaderboardPollInterval = null;
   let settingsPollInterval = null;
 
+  let allResultsPollInterval = null;
+  let activeResultsGroup = "A";
+
   function setupUserTabs() {
     const tabPreds = document.getElementById("tab-predictions");
     const tabLeader = document.getElementById("tab-leaderboard");
+    const tabAllResults = document.getElementById("tab-all-results");
+    
     const viewPreds = document.getElementById("predictions-view");
     const viewLeader = document.getElementById("leaderboard-view");
+    const viewAllResults = document.getElementById("all-results-view");
 
-    if (!tabPreds || !tabLeader) return;
+    if (!tabPreds || !tabLeader || !tabAllResults) return;
 
     tabPreds.onclick = () => {
       tabPreds.classList.add("active");
       tabLeader.classList.remove("active");
+      tabAllResults.classList.remove("active");
       viewPreds.style.display = "block";
       viewLeader.style.display = "none";
+      viewAllResults.style.display = "none";
       stopLeaderboardPolling();
+      stopAllResultsPolling();
     };
 
     tabLeader.onclick = () => {
       tabLeader.classList.add("active");
       tabPreds.classList.remove("active");
+      tabAllResults.classList.remove("active");
       viewPreds.style.display = "none";
       viewLeader.style.display = "block";
+      viewAllResults.style.display = "none";
       fetchLeaderboard();
       startLeaderboardPolling();
+      stopAllResultsPolling();
     };
+
+    tabAllResults.onclick = () => {
+      tabAllResults.classList.add("active");
+      tabPreds.classList.remove("active");
+      tabLeader.classList.remove("active");
+      viewPreds.style.display = "none";
+      viewLeader.style.display = "none";
+      viewAllResults.style.display = "block";
+      fetchAllResults();
+      startAllResultsPolling();
+      stopLeaderboardPolling();
+    };
+  }
+
+  function startAllResultsPolling() {
+    if (!allResultsPollInterval) {
+      allResultsPollInterval = setInterval(fetchAllResults, 60000);
+    }
+  }
+
+  function stopAllResultsPolling() {
+    if (allResultsPollInterval) {
+      clearInterval(allResultsPollInterval);
+      allResultsPollInterval = null;
+    }
+  }
+
+  async function fetchAllResults() {
+    const container = document.getElementById("all-results-container");
+    const loading = document.getElementById("all-results-loading");
+    const tabs = document.getElementById("all-results-tabs");
+
+    if (container.innerHTML === "") {
+      container.style.display = "none";
+      tabs.style.display = "none";
+      loading.style.display = "block";
+    }
+
+    try {
+      const res = await apiFetch("/api/predictions/all", {
+        headers: { "Authorization": userToken }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        renderAllResults(data);
+        loading.style.display = "none";
+      } else {
+        const errData = await res.json();
+        container.innerHTML = `<p class="msg error">${errData.error || "Error al cargar los resultados"}</p>`;
+        container.style.display = "block";
+        loading.style.display = "none";
+      }
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = `<p class="msg error">Error de conexión con el servidor</p>`;
+      container.style.display = "block";
+      loading.style.display = "none";
+    }
+  }
+
+  function renderAllResults(data) {
+    const tabsContainer = document.getElementById("all-results-tabs");
+    const container = document.getElementById("all-results-container");
+
+    tabsContainer.innerHTML = "";
+    tabsContainer.style.display = "flex";
+    container.style.display = "block";
+
+    // Re-use activeResultsGroup if valid, otherwise use first group
+    const groups = Object.keys(matchesByGroup);
+    if (!groups.includes(activeResultsGroup)) {
+      activeResultsGroup = groups[0];
+    }
+
+    groups.forEach(group => {
+      const btn = document.createElement("button");
+      btn.className = `tab-btn ${group === activeResultsGroup ? "active" : ""}`;
+      btn.textContent = `Grupo ${group}`;
+      btn.addEventListener("click", () => {
+        tabsContainer.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeResultsGroup = group;
+        renderGroupResultsContent(group, data);
+      });
+      tabsContainer.appendChild(btn);
+    });
+
+    renderGroupResultsContent(activeResultsGroup, data);
+  }
+
+  function calculateHitPoints(p1, p2, o1, o2) {
+    if (o1 === undefined || o2 === undefined || o1 === null || o2 === null) {
+      return { pts: "-", class: "no-result", label: "Sin jugar" };
+    }
+    const pred1 = parseInt(p1, 10);
+    const pred2 = parseInt(p2, 10);
+    const off1 = parseInt(o1, 10);
+    const off2 = parseInt(o2, 10);
+
+    if (pred1 === off1 && pred2 === off2) {
+      return { pts: "3 pts", class: "exact", label: "Exacto" };
+    }
+
+    const getWinner = (a, b) => (a > b ? 1 : a < b ? 2 : 0);
+    if (getWinner(pred1, pred2) === getWinner(off1, off2)) {
+      return { pts: "1 pt", class: "outcome", label: "Resultado" };
+    }
+
+    return { pts: "0 pts", class: "miss", label: "Fallo" };
+  }
+
+  function renderGroupResultsContent(group, data) {
+    const container = document.getElementById("all-results-container");
+    const { predictions, officialResults } = data;
+
+    let html = "";
+
+    matchesByGroup[group].forEach((match, mIdx) => {
+      const [time, t1, t2, stadium] = match;
+      const matchId = `G${group}_M${mIdx + 1}`;
+      const official = officialResults[matchId];
+      const matchPredictions = predictions[matchId] || [];
+
+      const flag1 = flags[t1] || "un";
+      const flag2 = flags[t2] || "un";
+
+      let officialScoreHtml = "";
+      if (official) {
+        officialScoreHtml = `
+          <div style="text-align: center; margin-bottom: 1rem;">
+            <div class="official-score-badge">
+              <span>Resultado Oficial:</span>
+              <strong>${official.score1} - ${official.score2}</strong>
+            </div>
+          </div>
+        `;
+      } else {
+        officialScoreHtml = `
+          <div style="text-align: center; margin-bottom: 1rem;">
+            <div class="official-score-badge pending">
+              <span>Sin resultado oficial</span>
+            </div>
+          </div>
+        `;
+      }
+
+      let predictionsRowsHtml = "";
+      if (matchPredictions.length === 0) {
+        predictionsRowsHtml = `
+          <tr>
+            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1rem;">
+              Nadie ha enviado predicciones para este partido todavía.
+            </td>
+          </tr>
+        `;
+      } else {
+        matchPredictions.forEach(pred => {
+          const result = calculateHitPoints(pred.score1, pred.score2, official?.score1, official?.score2);
+          const pointsBadgeClass = `badge-pts-${result.class}`;
+          
+          predictionsRowsHtml += `
+            <tr>
+              <td><strong>${pred.name}</strong></td>
+              <td style="text-align: center; font-weight: bold; color: #fff;">${pred.score1} - ${pred.score2}</td>
+              <td style="text-align: right;">
+                <span class="badge-pts ${pointsBadgeClass}">${result.pts} (${result.label})</span>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      html += `
+        <div class="match-results-card">
+          <div class="match-results-header">
+            <div class="match-header-meta">
+              <span>📅 ${time}</span>
+              <span>🏟️ ${stadium || "Por definir"}</span>
+            </div>
+            <div class="match-header-teams">
+              <div class="header-team">
+                <img src="https://flagcdn.com/w40/${flag1}.png" class="flag-icon" alt="${t1}">
+                <span>${t1}</span>
+              </div>
+              <div class="header-vs">VS</div>
+              <div class="header-team right">
+                <span>${t2}</span>
+                <img src="https://flagcdn.com/w40/${flag2}.png" class="flag-icon" alt="${t2}">
+              </div>
+            </div>
+            ${officialScoreHtml}
+          </div>
+          
+          <div class="match-predictions-list">
+            <div class="predictions-list-title">Predicciones de los jugadores:</div>
+            <table class="predictions-list-table">
+              <thead>
+                <tr>
+                  <th>Participante</th>
+                  <th style="text-align: center;">Predicción</th>
+                  <th style="text-align: right;">Puntos</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${predictionsRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
   }
 
   function startSystemPolling() {
@@ -491,6 +721,7 @@ document.addEventListener("DOMContentLoaded", () => {
       settingsPollInterval = null;
     }
     stopLeaderboardPolling();
+    stopAllResultsPolling();
   }
 
   function startLeaderboardPolling() {
